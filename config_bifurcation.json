@@ -1,0 +1,41 @@
+{
+  "gui": {
+    "window_title": "Traffic Simulator - Raccordo Multimodale e Biforcazioni",
+    "width": 1280,
+    "height": 720,
+    "bg_color": [240, 245, 240]
+  },
+  "simulation": {
+    "fps": 60
+  },
+  "environment": [
+    { "type": "building", "x": -180, "y": -50, "width": 60, "height": 40 },
+    { "type": "building", "x": -180, "y": 20, "width": 60, "height": 60 },
+    { "type": "building", "x": 50, "y": 30, "width": 100, "height": 50 },
+    { "type": "building", "x": 200, "y": -60, "width": 80, "height": 100 },
+    { "type": "tree", "x": -80, "y": -120, "radius": 5 },
+    { "type": "tree", "x": -30, "y": -150, "radius": 6 },
+    { "type": "tree", "x": -60, "y": -200, "radius": 5 },
+    { "type": "tree", "x": -20, "y": -250, "radius": 7 },
+    { "type": "rsu", "x": -80, "y": -20, "coverage": 100 },
+    { "type": "rsu", "x": -45, "y": -180, "coverage": 80 }
+  ],
+  "events": [
+    {
+      "type": "roadwork",
+      "trigger_time": 12.0,
+      "duration": 20.0,
+      "period": 40.0,
+      "segment": 1,
+      "position": 100
+    },
+    {
+      "type": "animal",
+      "trigger_time": 5.0,
+      "duration": 15.0,
+      "period": 30.0,
+      "segment": 3,
+      "position": -200
+    }
+  ]
+}

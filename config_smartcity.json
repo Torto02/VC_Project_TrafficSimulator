@@ -1,0 +1,51 @@
+{
+  "gui": {
+    "window_title": "Traffic Simulator - Distretto Smart City & Test Track",
+    "width": 1280,
+    "height": 720,
+    "bg_color": [235, 240, 245]
+  },
+  "simulation": {
+    "fps": 60
+  },
+  "environment": [
+    { "type": "building", "x": -200, "y": 100, "width": 60, "height": 60 },
+    { "type": "building", "x": -100, "y": 150, "width": 80, "height": 40 },
+    { "type": "building", "x": 50, "y": 150, "width": 120, "height": 30 },
+    { "type": "building", "x": 200, "y": 50, "width": 40, "height": 100 },
+    { "type": "building", "x": -50, "y": -100, "width": 70, "height": 50 },
+    { "type": "building", "x": -200, "y": -150, "width": 90, "height": 40 },
+    { "type": "tree", "x": 180, "y": 180, "radius": 6 },
+    { "type": "tree", "x": -250, "y": 50, "radius": 5 },
+    { "type": "tree", "x": 0, "y": 50, "radius": 4 },
+    { "type": "tree", "x": 100, "y": -50, "radius": 4 },
+    { "type": "tree", "x": -150, "y": -50, "radius": 5 },
+    { "type": "rsu", "x": 0, "y": -200, "coverage": 120 },
+    { "type": "rsu", "x": 150, "y": 100, "coverage": 100 },
+    { "type": "rsu", "x": -150, "y": 50, "coverage": 100 }
+  ],
+  "events": [
+    {
+      "type": "roadwork",
+      "trigger_time": 10.0,
+      "duration": 15.0,
+      "period": 35.0,
+      "segment": 0,
+      "position": 0
+    },
+    {
+      "type": "animal",
+      "trigger_time": 18.0,
+      "duration": 12.0,
+      "segment": 4,
+      "position": 50
+    },
+    {
+      "type": "roadwork",
+      "trigger_time": 5.0,
+      "duration": 20.0,
+      "segment": 2,
+      "position": -10
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import dearpygui.dearpygui as dpg
-
+import math
 
 class Window:
     def __init__(self, simulation):
@@ -12,7 +12,7 @@ class Window:
         self.window_title = self.config.get("gui.window_title", "TrafficSimulator")
         self.bg_color = tuple(self.config.get("gui.bg_color", [250, 250, 250]))
 
-        self.zoom = 7
+        self.zoom = 1
         self.offset = (0, 0)
         self.speed = 1
 
@@ -162,7 +162,7 @@ class Window:
         if self.is_dragging:
             self.offset = (
                 self.old_offset[0] + app_data[1]/self.zoom,
-                self.old_offset[1] + app_data[2]/self.zoom
+                self.old_offset[1] - app_data[2]/self.zoom # <--- Segno MENO per compensare l'asse invertito
             )
 
     def mouse_release(self):
@@ -194,13 +194,13 @@ class Window:
     def to_screen(self, x, y):
         return (
             self.canvas_width/2 + (x + self.offset[0] ) * self.zoom,
-            self.canvas_height/2 + (y + self.offset[1]) * self.zoom
+            self.canvas_height/2 - (y + self.offset[1]) * self.zoom # <--- Segno MENO
         )
 
     def to_world(self, x, y):
         return (
             (x - self.canvas_width/2) / self.zoom - self.offset[0],
-            (y - self.canvas_height/2) / self.zoom - self.offset[1] 
+            -(y - self.canvas_height/2) / self.zoom - self.offset[1] # <--- Segno MENO
         )
     
     @property
@@ -243,16 +243,17 @@ class Window:
     def draw_grid(self, unit=10, opacity=50):
         x_start, y_start = self.to_world(0, 0)
         x_end, y_end = self.to_world(self.canvas_width, self.canvas_height)
-
-        n_x = int(x_start / unit)
-        n_y = int(y_start / unit)
-        m_x = int(x_end / unit)+1
-        m_y = int(y_end / unit)+1
+        
+        # Usiamo min e max per supportare l'inversione dell'asse
+        n_x = int(min(x_start, x_end) / unit)
+        m_x = int(max(x_start, x_end) / unit) + 1
+        n_y = int(min(y_start, y_end) / unit)
+        m_y = int(max(y_start, y_end) / unit) + 1
 
         for i in range(n_x, m_x):
             dpg.draw_line(
-                self.to_screen(unit*i, y_start - 10/self.zoom),
-                self.to_screen(unit*i, y_end + 10/self.zoom),
+                self.to_screen(unit*i, min(y_start, y_end) - 10/self.zoom),
+                self.to_screen(unit*i, max(y_start, y_end) + 10/self.zoom),
                 thickness=1,
                 color=(0, 0, 0, opacity),
                 parent="OverlayCanvas"
@@ -260,29 +261,64 @@ class Window:
 
         for i in range(n_y, m_y):
             dpg.draw_line(
-                self.to_screen(x_start - 10/self.zoom, unit*i),
-                self.to_screen(x_end + 10/self.zoom, unit*i),
+                self.to_screen(min(x_start, x_end) - 10/self.zoom, unit*i),
+                self.to_screen(max(x_start, x_end) + 10/self.zoom, unit*i),
                 thickness=1,
                 color=(0, 0, 0, opacity),
                 parent="OverlayCanvas"
             )
 
     def draw_segments(self):
+        # 1. PRIMO CICLO: Disegna TUTTE le strade e le frecce
         for segment in self.simulation.segments:
-            # --- FASE 2: Stile differenziato per materiale e categoria ---
             color = (180, 180, 220) # Asfalto default
             thickness = 3.5 * self.zoom
             
             if hasattr(segment, 'material'):
                 if segment.material == "gravel" or segment.category == "dirt":
-                    color = (160, 140, 100) # Colore terra/sterrato
+                    color = (160, 140, 100) # Sterrato
+                elif segment.category == "bus_lane":
+                    color = (200, 150, 150) # Corsia preferenziale
             
             dpg.draw_polyline(segment.points, color=color, thickness=thickness, parent="Canvas")
             
-            # --- FASE 2: Frecce direzionali ---
-            if len(segment.points) >= 2:
-                # Disegna una freccia vicino alla fine del segmento stradale
-                dpg.draw_arrow(segment.points[-1], segment.points[-2], thickness=0, size=3*self.zoom, color=(0, 0, 0, 80), parent="Canvas")
+            # --- FIX: FRECCIA AL CENTRO DEL SEGMENTO E SCALATA CORRETTAMENTE ---
+            if segment.get_length() > 0:
+                # 0.5 indica il 50% della strada (il centro esatto)
+                center_pos = segment.get_point(0.5)
+                heading = segment.get_heading(0.5)
+                
+                # Creiamo un vettore direzione per posizionare punta (p1) e coda (p2)
+                arrow_len = 2.0
+                dx = math.cos(heading) * arrow_len
+                dy = math.sin(heading) * arrow_len
+                
+                p1 = (center_pos[0] + dx, center_pos[1] + dy) # Punta 
+                p2 = (center_pos[0] - dx, center_pos[1] - dy) # Coda
+                
+                # Size fisso a 3.0: il Canvas scala già le coordinate geometriche automaticamente!
+                dpg.draw_arrow(p1, p2, thickness=0, size=3.0, color=(0, 0, 0, 80), parent="Canvas")
+
+        # 2. SECONDO CICLO: Disegna i semafori in primissimo piano
+        for segment in self.simulation.segments:
+            if getattr(segment, 'traffic_light', None):
+                pos = segment.points[-1]
+                state = segment.traffic_light.state
+                
+                if state == "green":
+                    light_color = (0, 255, 0)
+                elif state == "yellow":
+                    light_color = (255, 200, 0)
+                else:
+                    light_color = (255, 0, 0)
+                
+                dpg.draw_circle(
+                    center=pos, 
+                    radius=4.5 * self.zoom, 
+                    color=(50, 50, 50), 
+                    fill=light_color, 
+                    parent="Canvas"
+                )
 
     def draw_vehicles(self):
         for segment in self.simulation.segments:
@@ -321,7 +357,8 @@ class Window:
     def apply_transformation(self):
         screen_center = dpg.create_translation_matrix([self.canvas_width/2, self.canvas_height/2, -0.01])
         translate = dpg.create_translation_matrix(self.offset)
-        scale = dpg.create_scale_matrix([self.zoom, self.zoom])
+        # FIX: invertiamo l'asse Y aggiungendo il segno meno a self.zoom
+        scale = dpg.create_scale_matrix([self.zoom, -self.zoom]) 
         dpg.apply_transform("Canvas", screen_center*scale*translate)
 
     def render_loop(self):
@@ -399,25 +436,7 @@ class Window:
                 # Disegna l'antenna
                 dpg.draw_circle(center=(x, y), radius=antenna_radius, color=(0, 0, 0), fill=(0, 200, 255), parent="Canvas")
 
-    # --- FASE 3: Strade colorate e frecce ---
-    def draw_segments(self):
-        for segment in self.simulation.segments:
-            color = (180, 180, 220) # Asfalto default
-            thickness = 3.5 * self.zoom
-            
-            if hasattr(segment, 'material'):
-                if segment.material == "gravel" or segment.category == "dirt":
-                    color = (160, 140, 100) # Sterrato
-                elif segment.category == "bus_lane":
-                    color = (200, 150, 150) # Corsia preferenziale
-            
-            dpg.draw_polyline(segment.points, color=color, thickness=thickness, parent="Canvas")
-            
-            # Disegna una freccia direzionale verso la fine del segmento
-            if len(segment.points) >= 2:
-                dpg.draw_arrow(segment.points[-1], segment.points[-2], thickness=0, size=3*self.zoom, color=(0, 0, 0, 80), parent="Canvas")
-
-    # --- FASE 3: Veicoli differenziati ---
+    
     
     # --- FASE 3/4/5: Veicoli differenziati ---
     def draw_vehicles(self):

@@ -6,19 +6,24 @@ from abc import ABC, abstractmethod
 from math import sqrt
 from scipy.integrate import quad
 
-# Modifica l'__init__ (le altre importazioni ed il resto restano uguali)
-# Modifica l'__init__ della classe astratta
+from ..traffic_light import TrafficLight # NUOVO IMPORT
+
+
 class Segment(ABC):
     def __init__(self, points, identifier="", max_speed=16.6, category="general", material="asphalt"):
         self.points = points
         self.identifier = identifier
-        # --- FASE 2: Nuovi attributi fisici e logici ---
-        self.max_speed = max_speed  # in m/s (es. 16.6 m/s = ~60 km/h)
-        self.category = category    # 'general', 'taxi', 'bus_lane'
-        self.material = material    # 'asphalt', 'concrete', 'dirt'
-        
+        self.max_speed = max_speed
+        self.category = category
+        self.material = material
         self.vehicles = deque()
+        
+        self.traffic_light = None # Proprietà di default
         self.set_functions()
+        
+    def add_traffic_light(self, phases):
+        """Assegna un ciclo semaforico alla fine di questo segmento stradale"""
+        self.traffic_light = TrafficLight(phases)
         
 
     def set_functions(self):

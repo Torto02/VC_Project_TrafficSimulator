@@ -2,9 +2,6 @@ from .segment import Segment
 
 PAS = 0.01
 CURVE_RESOLUTION = 50
-
-# Modifica l'__init__ 
-# Modifica l'__init__ per propagare i parametri
 class QuadraticCurve(Segment):
     def __init__(self, start, control, end, identifier="", max_speed=16.6, category="general", material="asphalt"):
         self.start = start

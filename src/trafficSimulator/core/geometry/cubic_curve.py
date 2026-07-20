@@ -2,7 +2,6 @@ from .segment import Segment
 
 CURVE_RESOLUTION = 50
 
-# Modifica l'__init__ per propagare i parametri
 class CubicCurve(Segment):
     def __init__(self, start, control_1, control_2, end, identifier="", max_speed=16.6, category="general", material="asphalt"):
         self.start = start

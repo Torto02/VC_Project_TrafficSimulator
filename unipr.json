@@ -1,6 +1,6 @@
 {
   "gui": {
-    "window_title": "Traffic Simulator - Topologia da Schema",
+    "window_title": "Traffic Simulator - University of Parma",
     "width": 1280,
     "height": 720,
     "bg_color": [245, 245, 250]
@@ -8,7 +8,46 @@
   "simulation": {
     "fps": 60
   },
+  "events": [
+    {
+      "type": "animal",
+      "segment": 1,
+      "position": 30,
+      "duration": 10.0,
+      "trigger_time": 30,
+      "period": 45
+    }
+  ],
+
   "environment": [
+    {
+      "type": "rsu",
+      "x": 0,
+      "y": 100,
+      "coverage": 40,
+      "id": "rsu_cubi_sud"
+    },
+    {
+      "type": "rsu",
+      "x": 60,
+      "y": 250,
+      "coverage": 40,
+      "id": "rsu_mensa_est"
+    },
+    {
+      "type": "rsu",
+      "x": -260,
+      "y": 380,
+      "coverage": 40,
+      "id": "rsu_usberti_polo_scienze"
+    },
+    {
+      "type": "rsu",
+      "x": -130,
+      "y": 210,
+      "coverage": 40,
+      "id": "rsu_parcheggi_centrali"
+    },
     {
       "type": "building",
       "x": 70,
@@ -37,12 +76,31 @@
 
     {
       "type": "building",
+      "x": -190,
+      "y": 430,
+      "width": 70,
+      "height": 25,
+      "id": "matematica"
+    },
+
+    {
+      "type": "building",
+      "x": -205,
+      "y": 390,
+      "width": 40,
+      "height": 25,
+      "id": "matematica"
+    },
+
+    {
+      "type": "building",
       "x": -110,
       "y": 270,
       "width": 70,
       "height": 15,
       "id": "didattica"
     },
+
     {
       "type": "building",
       "x": -110,
@@ -500,7 +558,1050 @@
       "y": 528,
       "radius": 8,
       "id": "albero_upper_25"
+    },
+
+    {
+      "type": "tree",
+      "x": -198.3,
+      "y": 314.3,
+      "radius": 4.1,
+      "id": "dense_p1_01"
+    },
+    {
+      "type": "tree",
+      "x": -188.3,
+      "y": 322.8,
+      "radius": 5.7,
+      "id": "dense_p1_02"
+    },
+    {
+      "type": "tree",
+      "x": -195.3,
+      "y": 330.0,
+      "radius": 4.7,
+      "id": "dense_p1_03"
+    },
+    {
+      "type": "tree",
+      "x": -190.6,
+      "y": 331.6,
+      "radius": 5.0,
+      "id": "dense_p1_04"
+    },
+    {
+      "type": "tree",
+      "x": -205.7,
+      "y": 346.4,
+      "radius": 5.6,
+      "id": "dense_p1_05"
+    },
+    {
+      "type": "tree",
+      "x": -184.5,
+      "y": 346.6,
+      "radius": 5.4,
+      "id": "dense_p1_06"
+    },
+    {
+      "type": "tree",
+      "x": -166.3,
+      "y": 329.1,
+      "radius": 6.2,
+      "id": "dense_p1_07"
+    },
+    {
+      "type": "tree",
+      "x": -167.6,
+      "y": 348.1,
+      "radius": 3.6,
+      "id": "dense_p1_08"
+    },
+    {
+      "type": "tree",
+      "x": -164.5,
+      "y": 363.0,
+      "radius": 3.4,
+      "id": "dense_p1_09"
+    },
+    {
+      "type": "tree",
+      "x": -200.3,
+      "y": 360.9,
+      "radius": 5.4,
+      "id": "dense_p1_10"
+    },
+    {
+      "type": "tree",
+      "x": -173.3,
+      "y": 354.7,
+      "radius": 5.1,
+      "id": "dense_p1_11"
+    },
+    {
+      "type": "tree",
+      "x": -183.0,
+      "y": 360.0,
+      "radius": 5.5,
+      "id": "dense_p1_12"
+    },
+    {
+      "type": "tree",
+      "x": -177.2,
+      "y": 318.4,
+      "radius": 3.9,
+      "id": "dense_p1_13"
+    },
+    {
+      "type": "tree",
+      "x": -195.2,
+      "y": 321.4,
+      "radius": 4.1,
+      "id": "dense_p1_14"
+    },
+    {
+      "type": "tree",
+      "x": -179.8,
+      "y": 335.3,
+      "radius": 4.5,
+      "id": "dense_p1_15"
+    },
+    {
+      "type": "tree",
+      "x": -180.9,
+      "y": 325.1,
+      "radius": 5.9,
+      "id": "dense_p1_16"
+    },
+    {
+      "type": "tree",
+      "x": -169.2,
+      "y": 340.3,
+      "radius": 4.1,
+      "id": "dense_p1_17"
+    },
+    {
+      "type": "tree",
+      "x": -194.6,
+      "y": 345.8,
+      "radius": 4.1,
+      "id": "dense_p1_18"
+    },
+    {
+      "type": "tree",
+      "x": -201.6,
+      "y": 336.2,
+      "radius": 7.0,
+      "id": "dense_p1_19"
+    },
+    {
+      "type": "tree",
+      "x": -183.9,
+      "y": 367.5,
+      "radius": 6.4,
+      "id": "dense_p1_20"
+    },
+    {
+      "type": "tree",
+      "x": -203.6,
+      "y": 354.2,
+      "radius": 5.7,
+      "id": "dense_p1_21"
+    },
+
+    {
+      "type": "tree",
+      "x": -144.6,
+      "y": 362.2,
+      "radius": 5.6,
+      "id": "dense_q_01"
+    },
+    {
+      "type": "tree",
+      "x": -134.7,
+      "y": 364.2,
+      "radius": 4.8,
+      "id": "dense_q_02"
+    },
+    {
+      "type": "tree",
+      "x": -109.6,
+      "y": 369.5,
+      "radius": 4.1,
+      "id": "dense_q_03"
+    },
+    {
+      "type": "tree",
+      "x": -145.0,
+      "y": 376.1,
+      "radius": 6.7,
+      "id": "dense_q_04"
+    },
+    {
+      "type": "tree",
+      "x": -125.6,
+      "y": 377.6,
+      "radius": 5.6,
+      "id": "dense_q_05"
+    },
+    {
+      "type": "tree",
+      "x": -113.7,
+      "y": 375.8,
+      "radius": 6.1,
+      "id": "dense_q_06"
+    },
+    {
+      "type": "tree",
+      "x": -144.5,
+      "y": 398.3,
+      "radius": 5.1,
+      "id": "dense_q_07"
+    },
+    {
+      "type": "tree",
+      "x": -136.0,
+      "y": 392.9,
+      "radius": 3.1,
+      "id": "dense_q_08"
+    },
+    {
+      "type": "tree",
+      "x": -109.9,
+      "y": 399.5,
+      "radius": 6.3,
+      "id": "dense_q_09"
+    },
+    {
+      "type": "tree",
+      "x": -146.4,
+      "y": 389.9,
+      "radius": 6.1,
+      "id": "dense_q_10"
+    },
+    {
+      "type": "tree",
+      "x": -121.3,
+      "y": 368.6,
+      "radius": 4.2,
+      "id": "dense_q_11"
+    },
+    {
+      "type": "tree",
+      "x": -111.2,
+      "y": 385.7,
+      "radius": 4.8,
+      "id": "dense_q_12"
+    },
+    {
+      "type": "tree",
+      "x": -114.6,
+      "y": 393.7,
+      "radius": 3.3,
+      "id": "dense_q_13"
+    },
+    {
+      "type": "tree",
+      "x": -140.0,
+      "y": 386.4,
+      "radius": 3.9,
+      "id": "dense_q_14"
+    },
+    {
+      "type": "tree",
+      "x": -132.6,
+      "y": 377.1,
+      "radius": 4.9,
+      "id": "dense_q_15"
+    },
+    {
+      "type": "tree",
+      "x": -121.3,
+      "y": 386.6,
+      "radius": 6.9,
+      "id": "dense_q_16"
+    },
+    {
+      "type": "tree",
+      "x": -138.4,
+      "y": 370.5,
+      "radius": 6.7,
+      "id": "dense_q_17"
+    },
+    {
+      "type": "tree",
+      "x": -128.4,
+      "y": 389.4,
+      "radius": 3.2,
+      "id": "dense_q_18"
+    },
+    {
+      "type": "tree",
+      "x": -131.6,
+      "y": 398.9,
+      "radius": 7.0,
+      "id": "dense_q_19"
+    },
+    {
+      "type": "tree",
+      "x": -146.2,
+      "y": 369.1,
+      "radius": 4.1,
+      "id": "dense_q_20"
+    },
+    {
+      "type": "tree",
+      "x": -115.5,
+      "y": 361.9,
+      "radius": 5.9,
+      "id": "dense_q_21"
+    },
+
+    {
+      "type": "tree",
+      "x": -292.0,
+      "y": 320.2,
+      "radius": 6.2,
+      "id": "dense_w_a_01"
+    },
+    {
+      "type": "tree",
+      "x": -270.6,
+      "y": 318.7,
+      "radius": 4.1,
+      "id": "dense_w_a_02"
+    },
+    {
+      "type": "tree",
+      "x": -286.6,
+      "y": 325.3,
+      "radius": 6.5,
+      "id": "dense_w_a_03"
+    },
+    {
+      "type": "tree",
+      "x": -270.7,
+      "y": 326.7,
+      "radius": 6.3,
+      "id": "dense_w_a_04"
+    },
+    {
+      "type": "tree",
+      "x": -283.4,
+      "y": 318.0,
+      "radius": 6.2,
+      "id": "dense_w_a_05"
+    },
+    {
+      "type": "tree",
+      "x": -288.8,
+      "y": 311.5,
+      "radius": 3.8,
+      "id": "dense_w_a_06"
+    },
+    {
+      "type": "tree",
+      "x": -294.0,
+      "y": 332.3,
+      "radius": 5.2,
+      "id": "dense_w_a_07"
+    },
+    {
+      "type": "tree",
+      "x": -284.3,
+      "y": 332.6,
+      "radius": 5.7,
+      "id": "dense_w_a_08"
+    },
+    {
+      "type": "tree",
+      "x": -274.5,
+      "y": 312.7,
+      "radius": 4.7,
+      "id": "dense_w_a_09"
+    },
+
+    {
+      "type": "tree",
+      "x": -288.4,
+      "y": 416.3,
+      "radius": 5.8,
+      "id": "dense_w_b_01"
+    },
+    {
+      "type": "tree",
+      "x": -275.1,
+      "y": 416.9,
+      "radius": 5.6,
+      "id": "dense_w_b_02"
+    },
+    {
+      "type": "tree",
+      "x": -295.9,
+      "y": 448.0,
+      "radius": 6.1,
+      "id": "dense_w_b_03"
+    },
+    {
+      "type": "tree",
+      "x": -279.7,
+      "y": 444.1,
+      "radius": 3.7,
+      "id": "dense_w_b_04"
+    },
+    {
+      "type": "tree",
+      "x": -284.5,
+      "y": 465.2,
+      "radius": 3.2,
+      "id": "dense_w_b_05"
+    },
+    {
+      "type": "tree",
+      "x": -278.0,
+      "y": 469.2,
+      "radius": 4.8,
+      "id": "dense_w_b_06"
+    },
+    {
+      "type": "tree",
+      "x": -275.6,
+      "y": 451.4,
+      "radius": 7.0,
+      "id": "dense_w_b_07"
+    },
+    {
+      "type": "tree",
+      "x": -283.1,
+      "y": 429.7,
+      "radius": 4.0,
+      "id": "dense_w_b_08"
+    },
+    {
+      "type": "tree",
+      "x": -290.8,
+      "y": 428.3,
+      "radius": 5.8,
+      "id": "dense_w_b_09"
+    },
+    {
+      "type": "tree",
+      "x": -285.9,
+      "y": 455.9,
+      "radius": 6.4,
+      "id": "dense_w_b_10"
+    },
+    {
+      "type": "tree",
+      "x": -272.1,
+      "y": 438.2,
+      "radius": 6.0,
+      "id": "dense_w_b_11"
+    },
+    {
+      "type": "tree",
+      "x": -290.9,
+      "y": 440.5,
+      "radius": 3.2,
+      "id": "dense_w_b_12"
+    },
+    {
+      "type": "tree",
+      "x": -274.9,
+      "y": 429.4,
+      "radius": 3.3,
+      "id": "dense_w_b_13"
+    },
+    {
+      "type": "tree",
+      "x": -291.2,
+      "y": 468.1,
+      "radius": 6.1,
+      "id": "dense_w_b_14"
+    },
+
+    {
+      "type": "tree",
+      "x": -96.8,
+      "y": 414.1,
+      "radius": 4.5,
+      "id": "dense_n_01"
+    },
+    {
+      "type": "tree",
+      "x": -74.9,
+      "y": 413.1,
+      "radius": 6.4,
+      "id": "dense_n_02"
+    },
+    {
+      "type": "tree",
+      "x": -51.1,
+      "y": 410.3,
+      "radius": 6.8,
+      "id": "dense_n_03"
+    },
+    {
+      "type": "tree",
+      "x": -33.4,
+      "y": 418.9,
+      "radius": 5.8,
+      "id": "dense_n_04"
+    },
+    {
+      "type": "tree",
+      "x": -95.8,
+      "y": 437.8,
+      "radius": 6.9,
+      "id": "dense_n_05"
+    },
+    {
+      "type": "tree",
+      "x": -77.8,
+      "y": 438.7,
+      "radius": 5.2,
+      "id": "dense_n_06"
+    },
+    {
+      "type": "tree",
+      "x": -55.2,
+      "y": 434.2,
+      "radius": 5.9,
+      "id": "dense_n_07"
+    },
+    {
+      "type": "tree",
+      "x": -37.8,
+      "y": 439.2,
+      "radius": 6.3,
+      "id": "dense_n_08"
+    },
+    {
+      "type": "tree",
+      "x": -100.0,
+      "y": 459.6,
+      "radius": 4.0,
+      "id": "dense_n_09"
+    },
+    {
+      "type": "tree",
+      "x": -75.4,
+      "y": 456.3,
+      "radius": 4.5,
+      "id": "dense_n_10"
+    },
+    {
+      "type": "tree",
+      "x": -60.7,
+      "y": 459.2,
+      "radius": 3.7,
+      "id": "dense_n_11"
+    },
+    {
+      "type": "tree",
+      "x": -38.5,
+      "y": 458.6,
+      "radius": 4.4,
+      "id": "dense_n_12"
+    },
+    {
+      "type": "tree",
+      "x": -47.4,
+      "y": 444.1,
+      "radius": 5.6,
+      "id": "dense_n_13"
+    },
+    {
+      "type": "tree",
+      "x": -65.6,
+      "y": 449.1,
+      "radius": 3.4,
+      "id": "dense_n_14"
+    },
+    {
+      "type": "tree",
+      "x": -83.9,
+      "y": 444.2,
+      "radius": 4.2,
+      "id": "dense_n_15"
+    },
+    {
+      "type": "tree",
+      "x": -62.9,
+      "y": 431.4,
+      "radius": 6.0,
+      "id": "dense_n_16"
+    },
+    {
+      "type": "tree",
+      "x": -80.6,
+      "y": 423.1,
+      "radius": 3.5,
+      "id": "dense_n_17"
+    },
+    {
+      "type": "tree",
+      "x": -85.9,
+      "y": 416.7,
+      "radius": 5.1,
+      "id": "dense_n_18"
+    },
+    {
+      "type": "tree",
+      "x": -47.2,
+      "y": 419.9,
+      "radius": 3.9,
+      "id": "dense_n_19"
+    },
+    {
+      "type": "tree",
+      "x": -62.7,
+      "y": 424.2,
+      "radius": 6.9,
+      "id": "dense_n_20"
+    },
+    {
+      "type": "tree",
+      "x": -90.4,
+      "y": 452.7,
+      "radius": 5.0,
+      "id": "dense_n_21"
+    },
+    {
+      "type": "tree",
+      "x": -43.1,
+      "y": 430.2,
+      "radius": 3.3,
+      "id": "dense_n_22"
+    },
+    {
+      "type": "tree",
+      "x": -57.8,
+      "y": 449.0,
+      "radius": 3.9,
+      "id": "dense_n_23"
+    },
+    {
+      "type": "tree",
+      "x": -48.7,
+      "y": 456.5,
+      "radius": 3.8,
+      "id": "dense_n_24"
+    },
+    {
+      "type": "tree",
+      "x": -68.4,
+      "y": 439.5,
+      "radius": 4.2,
+      "id": "dense_n_25"
+    },
+    {
+      "type": "tree",
+      "x": -42.8,
+      "y": 414.4,
+      "radius": 3.7,
+      "id": "dense_n_26"
+    },
+    {
+      "type": "tree",
+      "x": -69.6,
+      "y": 426.5,
+      "radius": 4.0,
+      "id": "dense_n_27"
+    },
+    {
+      "type": "tree",
+      "x": -53.3,
+      "y": 423.9,
+      "radius": 3.2,
+      "id": "dense_n_28"
+    },
+
+    {
+      "type": "tree",
+      "x": 18.1,
+      "y": 334.6,
+      "radius": 5.6,
+      "id": "dense_e_01"
+    },
+    {
+      "type": "tree",
+      "x": 40.0,
+      "y": 331.2,
+      "radius": 5.3,
+      "id": "dense_e_02"
+    },
+    {
+      "type": "tree",
+      "x": 56.6,
+      "y": 334.9,
+      "radius": 3.4,
+      "id": "dense_e_03"
+    },
+    {
+      "type": "tree",
+      "x": 73.2,
+      "y": 333.0,
+      "radius": 5.7,
+      "id": "dense_e_04"
+    },
+    {
+      "type": "tree",
+      "x": 99.3,
+      "y": 333.0,
+      "radius": 5.8,
+      "id": "dense_e_05"
+    },
+    {
+      "type": "tree",
+      "x": 12.5,
+      "y": 360.3,
+      "radius": 6.3,
+      "id": "dense_e_06"
+    },
+    {
+      "type": "tree",
+      "x": 35.6,
+      "y": 354.5,
+      "radius": 4.3,
+      "id": "dense_e_07"
+    },
+    {
+      "type": "tree",
+      "x": 52.9,
+      "y": 360.6,
+      "radius": 4.6,
+      "id": "dense_e_08"
+    },
+    {
+      "type": "tree",
+      "x": 75.2,
+      "y": 360.9,
+      "radius": 5.6,
+      "id": "dense_e_09"
+    },
+    {
+      "type": "tree",
+      "x": 95.5,
+      "y": 354.0,
+      "radius": 3.8,
+      "id": "dense_e_10"
+    },
+    {
+      "type": "tree",
+      "x": 13.3,
+      "y": 378.1,
+      "radius": 5.5,
+      "id": "dense_e_11"
+    },
+    {
+      "type": "tree",
+      "x": 38.1,
+      "y": 371.4,
+      "radius": 5.2,
+      "id": "dense_e_12"
+    },
+    {
+      "type": "tree",
+      "x": 60.1,
+      "y": 374.3,
+      "radius": 5.8,
+      "id": "dense_e_13"
+    },
+    {
+      "type": "tree",
+      "x": 70.5,
+      "y": 380.7,
+      "radius": 5.4,
+      "id": "dense_e_14"
+    },
+    {
+      "type": "tree",
+      "x": 91.9,
+      "y": 370.9,
+      "radius": 5.2,
+      "id": "dense_e_15"
+    },
+    {
+      "type": "tree",
+      "x": 98.3,
+      "y": 374.8,
+      "radius": 4.8,
+      "id": "dense_e_16"
+    },
+    {
+      "type": "tree",
+      "x": 21.3,
+      "y": 370.9,
+      "radius": 5.0,
+      "id": "dense_e_17"
+    },
+    {
+      "type": "tree",
+      "x": 97.3,
+      "y": 342.7,
+      "radius": 5.2,
+      "id": "dense_e_18"
+    },
+    {
+      "type": "tree",
+      "x": 44.8,
+      "y": 375.2,
+      "radius": 5.0,
+      "id": "dense_e_19"
+    },
+    {
+      "type": "tree",
+      "x": 35.9,
+      "y": 345.3,
+      "radius": 5.3,
+      "id": "dense_e_20"
+    },
+    {
+      "type": "tree",
+      "x": 24.1,
+      "y": 356.9,
+      "radius": 4.4,
+      "id": "dense_e_21"
+    },
+    {
+      "type": "tree",
+      "x": 59.6,
+      "y": 357.1,
+      "radius": 4.8,
+      "id": "dense_e_22"
+    },
+    {
+      "type": "tree",
+      "x": 31.6,
+      "y": 368.2,
+      "radius": 3.2,
+      "id": "dense_e_23"
+    },
+    {
+      "type": "tree",
+      "x": 82.4,
+      "y": 349.5,
+      "radius": 5.7,
+      "id": "dense_e_24"
+    },
+    {
+      "type": "tree",
+      "x": 83.2,
+      "y": 378.1,
+      "radius": 5.0,
+      "id": "dense_e_25"
+    },
+    {
+      "type": "tree",
+      "x": 74.6,
+      "y": 350.7,
+      "radius": 5.6,
+      "id": "dense_e_26"
+    },
+    {
+      "type": "tree",
+      "x": 77.8,
+      "y": 372.9,
+      "radius": 3.1,
+      "id": "dense_e_27"
+    },
+    {
+      "type": "tree",
+      "x": 92.0,
+      "y": 378.9,
+      "radius": 6.0,
+      "id": "dense_e_28"
+    },
+    {
+      "type": "tree",
+      "x": 49.2,
+      "y": 335.7,
+      "radius": 5.5,
+      "id": "dense_e_29"
+    },
+    {
+      "type": "tree",
+      "x": 26.0,
+      "y": 334.8,
+      "radius": 6.5,
+      "id": "dense_e_30"
+    },
+    {
+      "type": "tree",
+      "x": 65.5,
+      "y": 342.6,
+      "radius": 6.7,
+      "id": "dense_e_31"
+    },
+    {
+      "type": "tree",
+      "x": 11.8,
+      "y": 369.6,
+      "radius": 6.6,
+      "id": "dense_e_32"
+    },
+    {
+      "type": "tree",
+      "x": 49.9,
+      "y": 347.6,
+      "radius": 5.4,
+      "id": "dense_e_33"
+    },
+    {
+      "type": "tree",
+      "x": 67.2,
+      "y": 351.4,
+      "radius": 4.0,
+      "id": "dense_e_34"
+    },
+    {
+      "type": "tree",
+      "x": 85.4,
+      "y": 340.6,
+      "radius": 4.5,
+      "id": "dense_e_35"
+    },
+    {
+      "type": "tree",
+      "x": 97.1,
+      "y": 362.6,
+      "radius": 4.1,
+      "id": "dense_e_36"
+    },
+
+    {
+      "type": "tree",
+      "x": -109.2,
+      "y": 242.2,
+      "radius": 6.0,
+      "id": "dense_s_a_01"
+    },
+    {
+      "type": "tree",
+      "x": -95.4,
+      "y": 241.3,
+      "radius": 5.0,
+      "id": "dense_s_a_02"
+    },
+    {
+      "type": "tree",
+      "x": -65.2,
+      "y": 237.4,
+      "radius": 6.2,
+      "id": "dense_s_a_03"
+    },
+    {
+      "type": "tree",
+      "x": -48.7,
+      "y": 238.2,
+      "radius": 5.5,
+      "id": "dense_s_a_04"
+    },
+    {
+      "type": "tree",
+      "x": -28.5,
+      "y": 242.1,
+      "radius": 5.9,
+      "id": "dense_s_a_05"
+    },
+    {
+      "type": "tree",
+      "x": -56.0,
+      "y": 242.7,
+      "radius": 5.5,
+      "id": "dense_s_a_06"
+    },
+    {
+      "type": "tree",
+      "x": -86.8,
+      "y": 239.5,
+      "radius": 5.3,
+      "id": "dense_s_a_07"
+    },
+    {
+      "type": "tree",
+      "x": -40.9,
+      "y": 238.1,
+      "radius": 6.3,
+      "id": "dense_s_a_08"
+    },
+    {
+      "type": "tree",
+      "x": -71.6,
+      "y": 242.5,
+      "radius": 6.0,
+      "id": "dense_s_a_09"
+    },
+    {
+      "type": "tree",
+      "x": -77.5,
+      "y": 236.8,
+      "radius": 5.0,
+      "id": "dense_s_a_10"
+    },
+    {
+      "type": "tree",
+      "x": -102.6,
+      "y": 238.0,
+      "radius": 3.7,
+      "id": "dense_s_a_11"
+    },
+    {
+      "type": "tree",
+      "x": -33.9,
+      "y": 236.6,
+      "radius": 3.3,
+      "id": "dense_s_a_12"
+    },
+
+    {
+      "type": "tree",
+      "x": 76.3,
+      "y": 229.8,
+      "radius": 4.1,
+      "id": "dense_s_b_01"
+    },
+    {
+      "type": "tree",
+      "x": 96.6,
+      "y": 235.6,
+      "radius": 4.3,
+      "id": "dense_s_b_02"
+    },
+    {
+      "type": "tree",
+      "x": 120.9,
+      "y": 235.4,
+      "radius": 4.8,
+      "id": "dense_s_b_03"
+    },
+    {
+      "type": "tree",
+      "x": 104.7,
+      "y": 237.8,
+      "radius": 5.6,
+      "id": "dense_s_b_04"
+    },
+    {
+      "type": "tree",
+      "x": 78.3,
+      "y": 238.4,
+      "radius": 3.3,
+      "id": "dense_s_b_05"
+    },
+    {
+      "type": "tree",
+      "x": 110.9,
+      "y": 231.7,
+      "radius": 3.4,
+      "id": "dense_s_b_06"
+    },
+    {
+      "type": "tree",
+      "x": 87.9,
+      "y": 235.6,
+      "radius": 3.9,
+      "id": "dense_s_b_07"
     }
-  ],
-  "events": []
+  ]
 }

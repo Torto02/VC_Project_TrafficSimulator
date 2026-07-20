@@ -167,27 +167,7 @@ sim.create_segment("viale_usberti_sx_dx_Sx", "viale_usberti_sx_dx", identifier="
 # Curve parcheggio usberti
 sim.create_quadratic_bezier_curve("viale_usberti_sx_dx_Sx", "usberti_parcheggio", identifier="viale_usberti_sx_dx_Sx_to_usberti_parcheggio")  #103
 sim.create_quadratic_bezier_curve("parcheggio_usberti", "viale_usberti_sx_dx", identifier="parcheggio_usberti_to_viale_usberti_sx_dx")  #104
-traffic_config = sim.config.get("traffic_settings")
 
-if traffic_config:
-    rate = traffic_config.get("global_rate", 40)
-    
-    vehicles_list = []
-    for route in traffic_config.get("routes", []):
-        vehicles_list.append((
-            route["weight"], 
-            {
-                "path": route["path"], 
-                "vehicle_class": route.get("vehicle_class", "car")
-            }
-        ))
-    
-    sim.create_vehicle_generator(
-        vehicle_rate=rate,
-        vehicles=vehicles_list
-    )
-else:
-    print("[Avviso] Nessuna configurazione 'traffic_settings' trovata nel JSON. Traffico non generato.")
 
 
 sim.create_intersection([

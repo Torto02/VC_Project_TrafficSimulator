@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from math import sqrt
 from scipy.integrate import quad
 
-from ..traffic_light import TrafficLight # NUOVO IMPORT
+from ..traffic_light import TrafficLight 
 
 
 class Segment(ABC):

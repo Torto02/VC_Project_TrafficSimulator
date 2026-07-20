@@ -1,0 +1,506 @@
+{
+  "gui": {
+    "window_title": "Traffic Simulator - Topologia da Schema",
+    "width": 1280,
+    "height": 720,
+    "bg_color": [245, 245, 250]
+  },
+  "simulation": {
+    "fps": 60
+  },
+  "environment": [
+    {
+      "type": "building",
+      "x": 70,
+      "y": 250,
+      "width": 40,
+      "height": 20,
+      "id": "mensa"
+    },
+    {
+      "type": "building",
+      "x": 10,
+      "y": 300,
+      "width": 70,
+      "height": 25,
+      "id": "matematica"
+    },
+
+    {
+      "type": "building",
+      "x": -20,
+      "y": 430,
+      "width": 80,
+      "height": 35,
+      "id": "matematica"
+    },
+
+    {
+      "type": "building",
+      "x": -110,
+      "y": 270,
+      "width": 70,
+      "height": 15,
+      "id": "didattica"
+    },
+    {
+      "type": "building",
+      "x": -110,
+      "y": 285,
+      "width": 10,
+      "height": 20,
+      "id": "didatticasx"
+    },
+    {
+      "type": "building",
+      "x": -50,
+      "y": 285,
+      "width": 10,
+      "height": 20,
+      "id": "didatticasx"
+    },
+
+    {
+      "type": "building",
+      "x": -110,
+      "y": 320,
+      "width": 70,
+      "height": 15,
+      "id": "ampliamento"
+    },
+
+    { "type": "parking", "x": -170, "y": 230, "width": 25, "height": 30 },
+    { "type": "parking", "x": -145, "y": 230, "width": 25, "height": 30 },
+    { "type": "parking", "x": -145, "y": 260, "width": 25, "height": 30 },
+    { "type": "parking", "x": -145, "y": 290, "width": 25, "height": 30 },
+
+    {
+      "type": "building",
+      "x": -240,
+      "y": 240,
+      "width": 30,
+      "height": 65,
+      "id": "chimica"
+    },
+
+    {
+      "type": "building",
+      "x": -310,
+      "y": 240,
+      "width": 30,
+      "height": 65,
+      "id": "chimica"
+    },
+
+    {
+      "type": "building",
+      "x": -240,
+      "y": 380,
+      "width": 35,
+      "height": 65,
+      "id": ""
+    },
+
+    {
+      "type": "building",
+      "x": -390,
+      "y": 430,
+      "width": 105,
+      "height": 25,
+      "id": "scienze"
+    },
+
+    {
+      "type": "other",
+      "x": -105,
+      "y": 360,
+      "width": 80,
+      "height": 40,
+      "id": "azienda"
+    },
+
+    { "type": "parking", "x": -310, "y": 390, "width": 20, "height": 20 },
+    { "type": "parking", "x": -310, "y": 370, "width": 20, "height": 20 },
+    { "type": "parking", "x": -310, "y": 350, "width": 20, "height": 20 },
+    { "type": "parking", "x": -350, "y": 350, "width": 40, "height": 20 },
+    { "type": "parking", "x": -390, "y": 350, "width": 40, "height": 20 },
+    { "type": "parking", "x": -390, "y": 370, "width": 20, "height": 20 },
+    { "type": "parking", "x": -390, "y": 390, "width": 20, "height": 20 },
+
+    { "type": "parking", "x": 60, "y": 95, "width": 50, "height": 30 },
+    { "type": "parking", "x": 60, "y": 125, "width": 50, "height": 30 },
+    { "type": "parking", "x": 10, "y": 125, "width": 50, "height": 30 },
+    { "type": "parking", "x": -114, "y": 95, "width": 50, "height": 30 },
+    { "type": "parking", "x": -114, "y": 65, "width": 50, "height": 30 },
+    {
+      "type": "building",
+      "x": 15,
+      "y": 30,
+      "width": 120,
+      "height": 50,
+      "id": "cubi"
+    },
+
+    { "type": "tree", "x": -130, "y": 185, "radius": 10, "id": "albero1" },
+    { "type": "tree", "x": -110, "y": 190, "radius": 11, "id": "albero2" },
+    { "type": "tree", "x": -90, "y": 182, "radius": 10, "id": "albero3" },
+    { "type": "tree", "x": -70, "y": 188, "radius": 12, "id": "albero4" },
+    { "type": "tree", "x": -45, "y": 181, "radius": 10, "id": "albero5" },
+
+    { "type": "tree", "x": -138, "y": 160, "radius": 11, "id": "albero6" },
+    { "type": "tree", "x": -118, "y": 165, "radius": 10, "id": "albero7" },
+    { "type": "tree", "x": -98, "y": 168, "radius": 12, "id": "albero8" },
+    { "type": "tree", "x": -76, "y": 162, "radius": 10, "id": "albero9" },
+    { "type": "tree", "x": -52, "y": 159, "radius": 11, "id": "albero10" },
+
+    { "type": "tree", "x": -132, "y": 142, "radius": 10, "id": "albero11" },
+    { "type": "tree", "x": -112, "y": 146, "radius": 12, "id": "albero12" },
+    { "type": "tree", "x": -92, "y": 140, "radius": 10, "id": "albero13" },
+    { "type": "tree", "x": -68, "y": 145, "radius": 11, "id": "albero14" },
+    { "type": "tree", "x": -42, "y": 143, "radius": 10, "id": "albero15" },
+    {
+      "type": "tree",
+      "x": -320,
+      "y": 180,
+      "radius": 8,
+      "id": "albero50"
+    },
+    {
+      "type": "tree",
+      "x": -300,
+      "y": 172,
+      "radius": 9,
+      "id": "albero51"
+    },
+    {
+      "type": "tree",
+      "x": -280,
+      "y": 182,
+      "radius": 8,
+      "id": "albero52"
+    },
+    {
+      "type": "tree",
+      "x": -260,
+      "y": 174,
+      "radius": 10,
+      "id": "albero53"
+    },
+    {
+      "type": "tree",
+      "x": -240,
+      "y": 184,
+      "radius": 8,
+      "id": "albero54"
+    },
+    {
+      "type": "tree",
+      "x": -220,
+      "y": 176,
+      "radius": 9,
+      "id": "albero55"
+    },
+    {
+      "type": "tree",
+      "x": -200,
+      "y": 186,
+      "radius": 8,
+      "id": "albero56"
+    },
+    {
+      "type": "tree",
+      "x": -180,
+      "y": 178,
+      "radius": 10,
+      "id": "albero57"
+    },
+    {
+      "type": "tree",
+      "x": -160,
+      "y": 188,
+      "radius": 8,
+      "id": "albero58"
+    },
+    {
+      "type": "tree",
+      "x": -140,
+      "y": 176,
+      "radius": 9,
+      "id": "albero59"
+    },
+    {
+      "type": "tree",
+      "x": -120,
+      "y": 188,
+      "radius": 8,
+      "id": "albero60"
+    },
+    {
+      "type": "tree",
+      "x": -100,
+      "y": 178,
+      "radius": 10,
+      "id": "albero61"
+    },
+    {
+      "type": "tree",
+      "x": -80,
+      "y": 188,
+      "radius": 8,
+      "id": "albero62"
+    },
+    {
+      "type": "tree",
+      "x": -60,
+      "y": 176,
+      "radius": 9,
+      "id": "albero63"
+    },
+    {
+      "type": "tree",
+      "x": -40,
+      "y": 186,
+      "radius": 8,
+      "id": "albero64"
+    },
+    {
+      "type": "tree",
+      "x": -20,
+      "y": 176,
+      "radius": 10,
+      "id": "albero65"
+    },
+    {
+      "type": "tree",
+      "x": 0,
+      "y": 186,
+      "radius": 8,
+      "id": "albero66"
+    },
+    {
+      "type": "tree",
+      "x": 20,
+      "y": 176,
+      "radius": 9,
+      "id": "albero67"
+    },
+    {
+      "type": "tree",
+      "x": 40,
+      "y": 186,
+      "radius": 8,
+      "id": "albero68"
+    },
+    {
+      "type": "tree",
+      "x": 60,
+      "y": 176,
+      "radius": 10,
+      "id": "albero69"
+    },
+    {
+      "type": "tree",
+      "x": 80,
+      "y": 186,
+      "radius": 8,
+      "id": "albero70"
+    },
+    {
+      "type": "tree",
+      "x": 100,
+      "y": 176,
+      "radius": 9,
+      "id": "albero71"
+    },
+    {
+      "type": "tree",
+      "x": 120,
+      "y": 186,
+      "radius": 8,
+      "id": "albero72"
+    },
+    {
+      "type": "tree",
+      "x": 140,
+      "y": 176,
+      "radius": 10,
+      "id": "albero73"
+    },
+    {
+      "type": "tree",
+      "x": -320,
+      "y": 500,
+      "radius": 8,
+      "id": "albero_upper_01"
+    },
+    {
+      "type": "tree",
+      "x": -300,
+      "y": 490,
+      "radius": 9,
+      "id": "albero_upper_02"
+    },
+    {
+      "type": "tree",
+      "x": -280,
+      "y": 505,
+      "radius": 8,
+      "id": "albero_upper_03"
+    },
+    {
+      "type": "tree",
+      "x": -260,
+      "y": 495,
+      "radius": 9,
+      "id": "albero_upper_04"
+    },
+    {
+      "type": "tree",
+      "x": -240,
+      "y": 508,
+      "radius": 8,
+      "id": "albero_upper_05"
+    },
+    {
+      "type": "tree",
+      "x": -220,
+      "y": 498,
+      "radius": 10,
+      "id": "albero_upper_06"
+    },
+    {
+      "type": "tree",
+      "x": -200,
+      "y": 510,
+      "radius": 8,
+      "id": "albero_upper_07"
+    },
+    {
+      "type": "tree",
+      "x": -180,
+      "y": 500,
+      "radius": 9,
+      "id": "albero_upper_08"
+    },
+    {
+      "type": "tree",
+      "x": -160,
+      "y": 512,
+      "radius": 8,
+      "id": "albero_upper_09"
+    },
+    {
+      "type": "tree",
+      "x": -140,
+      "y": 502,
+      "radius": 10,
+      "id": "albero_upper_10"
+    },
+    {
+      "type": "tree",
+      "x": -120,
+      "y": 514,
+      "radius": 8,
+      "id": "albero_upper_11"
+    },
+    {
+      "type": "tree",
+      "x": -100,
+      "y": 504,
+      "radius": 9,
+      "id": "albero_upper_12"
+    },
+    {
+      "type": "tree",
+      "x": -80,
+      "y": 516,
+      "radius": 8,
+      "id": "albero_upper_13"
+    },
+    {
+      "type": "tree",
+      "x": -60,
+      "y": 506,
+      "radius": 10,
+      "id": "albero_upper_14"
+    },
+    {
+      "type": "tree",
+      "x": -40,
+      "y": 518,
+      "radius": 8,
+      "id": "albero_upper_15"
+    },
+    {
+      "type": "tree",
+      "x": -20,
+      "y": 508,
+      "radius": 9,
+      "id": "albero_upper_16"
+    },
+    {
+      "type": "tree",
+      "x": 0,
+      "y": 520,
+      "radius": 8,
+      "id": "albero_upper_17"
+    },
+    {
+      "type": "tree",
+      "x": 20,
+      "y": 510,
+      "radius": 10,
+      "id": "albero_upper_18"
+    },
+    {
+      "type": "tree",
+      "x": 40,
+      "y": 522,
+      "radius": 8,
+      "id": "albero_upper_19"
+    },
+    {
+      "type": "tree",
+      "x": 60,
+      "y": 512,
+      "radius": 9,
+      "id": "albero_upper_20"
+    },
+    {
+      "type": "tree",
+      "x": 80,
+      "y": 524,
+      "radius": 8,
+      "id": "albero_upper_21"
+    },
+    {
+      "type": "tree",
+      "x": 100,
+      "y": 514,
+      "radius": 10,
+      "id": "albero_upper_22"
+    },
+    {
+      "type": "tree",
+      "x": 120,
+      "y": 526,
+      "radius": 8,
+      "id": "albero_upper_23"
+    },
+    {
+      "type": "tree",
+      "x": 140,
+      "y": 516,
+      "radius": 9,
+      "id": "albero_upper_24"
+    },
+    {
+      "type": "tree",
+      "x": 160,
+      "y": 528,
+      "radius": 8,
+      "id": "albero_upper_25"
+    }
+  ],
+  "events": []
+}

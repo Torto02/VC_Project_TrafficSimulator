@@ -8,3 +8,4 @@ from .core.vehicle import Vehicle
 from .core.vehicle_generator import VehicleGenerator
 from .core.simulation import Simulation
 from .visualizer.window import Window
+from .core.intersection_manager import IntersectionManager

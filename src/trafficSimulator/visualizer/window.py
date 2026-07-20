@@ -273,30 +273,33 @@ class Window:
         for segment in self.simulation.segments:
             color = (180, 180, 220) # Asfalto default
             thickness = 3.5 * self.zoom
-            
+                         
             if hasattr(segment, 'material'):
                 if segment.material == "gravel" or segment.category == "dirt":
                     color = (160, 140, 100) # Sterrato
                 elif segment.category == "bus_lane":
                     color = (200, 150, 150) # Corsia preferenziale
-            
+                elif segment.category == "work_zone":
+                    color = (244, 164, 96) 
+                         
             dpg.draw_polyline(segment.points, color=color, thickness=thickness, parent="Canvas")
+                         
+            # --- FRECCIA AL CENTRO (Disegnata solo se il segmento è abbastanza lungo) ---
+            MIN_LENGTH_FOR_ARROW = 15.0  # Soglia in metri sotto la quale la freccia viene nascosta
             
-            # --- FIX: FRECCIA AL CENTRO DEL SEGMENTO E SCALATA CORRETTAMENTE ---
-            if segment.get_length() > 0:
+            if segment.get_length() > MIN_LENGTH_FOR_ARROW:
                 # 0.5 indica il 50% della strada (il centro esatto)
                 center_pos = segment.get_point(0.5)
                 heading = segment.get_heading(0.5)
-                
+                                 
                 # Creiamo un vettore direzione per posizionare punta (p1) e coda (p2)
                 arrow_len = 2.0
                 dx = math.cos(heading) * arrow_len
                 dy = math.sin(heading) * arrow_len
-                
+                                 
                 p1 = (center_pos[0] + dx, center_pos[1] + dy) # Punta 
                 p2 = (center_pos[0] - dx, center_pos[1] - dy) # Coda
-                
-                # Size fisso a 3.0: il Canvas scala già le coordinate geometriche automaticamente!
+                                 
                 dpg.draw_arrow(p1, p2, thickness=0, size=3.0, color=(0, 0, 0, 80), parent="Canvas")
 
         # 2. SECONDO CICLO: Disegna i semafori in primissimo piano
@@ -425,7 +428,7 @@ class Window:
                 # pmin e pmax sono coordinate reali, verranno scalate dalla matrice di trasformazione del Canvas
                 w = item.get("width", 10)
                 h = item.get("height", 10)
-                dpg.draw_rectangle(pmin=(x, y), pmax=(x+w, y+h), color=(100, 100, 100), fill=(160, 160, 160, 255), parent="Canvas")
+                dpg.draw_rectangle(pmin=(x, y), pmax=(x+w, y+h), color=(100, 100, 100), fill=(220, 220, 220), parent="Canvas")
                 
             elif item_type == "rsu":
                 # Road-Side Unit / Antenna
@@ -435,9 +438,36 @@ class Window:
                 dpg.draw_circle(center=(x, y), radius=coverage, color=(0, 200, 255, 100), fill=(0, 200, 255, 15), parent="Canvas")
                 # Disegna l'antenna
                 dpg.draw_circle(center=(x, y), radius=antenna_radius, color=(0, 0, 0), fill=(0, 200, 255), parent="Canvas")
+            
+            elif item_type == "parking":
+                w = item.get("width", 80)
+                h = item.get("height", 30)
 
-    
-    
+                target_spot_w = 5
+                target_spot_h = h/3
+
+                cols = max(1, int(w // target_spot_w))
+                spot_w = w / cols
+
+                dpg.draw_rectangle(
+                    pmin=(x, y),
+                    pmax=(x + w, y + h),
+                    color=(112, 128, 144),
+                    fill=(112, 128, 144),
+                    parent="Canvas"
+                )
+
+                for i in range(cols + 1):
+                    line_x = x + i * spot_w
+                    dpg.draw_line((line_x, y), (line_x, y + h), color=(255, 255, 255, 200), thickness=2, parent="Canvas")
+
+                dpg.draw_line((x, y + h / 2), (x + w, y + h / 2), color=(255, 255, 255, 220), thickness=2, parent="Canvas")
+            
+            elif item_type == "other":
+                w = item.get("width", 80)
+                h = item.get("height", 30)
+                dpg.draw_rectangle(pmin=(x, y), pmax=(x+w, y+h), color=(189, 183, 107), fill=(189, 183, 107), parent="Canvas")
+                
     # --- FASE 3/4/5: Veicoli differenziati ---
     def draw_vehicles(self):
         for segment in self.simulation.segments:

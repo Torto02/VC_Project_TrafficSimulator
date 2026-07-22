@@ -8,7 +8,14 @@
     
     Aprire il terminale e navigare nella cartella principale (`VC_Project_TrafficSimulator`):
     
-2. **Installare il pacchetto in modalità editabile (`e`):**
+2. **Creazione e attivazione dell'Ambiente Virtuale:** Per prevenire conflitti con i pacchetti di sistema è raccomandata la creazione di un ambiente Python isolato:
+    
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+    
+3. **Installare il pacchetto in modalità editabile (`e`):**
     
     ```bash
     python3 -m pip install -e .
@@ -16,7 +23,7 @@
     
     *(Su Windows: `python -m pip install -e .`)*
     
-3. **Esecuzione dello script principale:**
+4. **Esecuzione dello script principale:**
     
     Per lanciare la simulazione completa del Campus UNIPR:
     

@@ -23,3 +23,89 @@ Description-Content-Type: text/markdown
 Requires-Dist: numpy
 Requires-Dist: scipy
 Requires-Dist: dearpygui
+
+# Guida all'Installazione, Avvio e Analisi della Simulazione
+
+## 1. Guida all'Installazione ed Esecuzione
+
+### Passaggi per l'Installazione
+
+1. **Posizionarsi nella cartella principale del progetto:**
+    
+    Aprire il terminale e navigare nella cartella principale (`VC_Project_TrafficSimulator`):
+    
+2. **Installare il pacchetto in modalità editabile (`e`):**
+    
+    ```bash
+    python3 -m pip install -e .
+    ```
+    
+    *(Su Windows: `python -m pip install -e .`)*
+    
+3. **Esecuzione dello script principale:**
+    
+    Per lanciare la simulazione completa del Campus UNIPR:
+    
+    ```bash
+    python3 examples/unipr_map.py
+    ```
+    
+
+## 2. Spiegazione Dettagliata del File e delle Funzionalità Mostrate (`unipr_map.py` + `unipr.json`)
+
+Lo script `examples/unipr_map.py` e il relativo file di configurazione `unipr.json` integrano tutte le richieste del progetto finale e mostrano un'architettura completa per la gestione di un distretto urbano connesso. Di seguito viene spiegato tutto ciò che verrà mostrato in questa simulazione: 
+
+### A. Scenografia Ambientale e Infrastruttura (`unipr.json`)
+
+Appena avviata la finestra grafica, la mappa 2D renderizza:
+
+- **Edifici e Strutture reali del Campus UNIPR:** Renderizzati in grigio (es. *Mensa*, *Dipartimenti di Matematica, Chimica, Scienze*, *Cubi*).
+- **Zone Parcheggio:** Aree delimitatedi sosta disegnati visivamente in grigio scuro con strisce bianche.
+- **Aree Verdi e Alberi:** Centinaia di alberi di varie dimensioni organizzati in blocchi densi a riprodurre il parco del Campus.
+- **Nodi RSU (Road-Side Unit):** Rappresentati come antenne radio con **cerchi azzurri trasparenti** che delimitano la copertura wireless della rete V2I
+
+### B. Categorie Stradali, Materiali e Segnaletica
+
+Osservando le strade sulla mappa è possibile notare la differenziazione visiva:
+
+- **Asfalto Generale:** Linee grigio chiaro.
+- **Corsie Preferenziali Bus (`bus_lane`):** Colorate in **rosa** per evidenziare le corsie riservate ai mezzi pubblici
+- **Zona Cantiere e Lavori (`work_zone` / `dirt`):** Colorate in **arancione/marrone** per indicare il tratto sterrato/cantiere.
+- **Frecce Direzionali di Marcia:** Su ogni segmento principale è disegnata una freccia scura al centro della carreggiata per indicare il senso unico di percorrenza.
+
+### C. Topologia Avanzata e Collegamento Mnemonico
+
+Nel codice di `unipr_map.py` si nota l'uso degli **identificatori in stringa** (`identifier`):
+
+- Le strade vengono create e collegate per nome (es. `sim.create_segment("viale_usberti_dx_sx", "viale_usberti_sx_sx")`).
+- Le curve di raccordo calcolano autonomamente la tangente ideale partendo dai soli nomi delle strade collegate (es. `sim.create_quadratic_bezier_curve("Cubi_S_N_Up", "viale_usberti_dx_dx")`).
+
+### D. Classi Veicolari e Fisica Differenziata
+
+Durante l'esecuzione si muoveranno diversi tipi di veicoli, ciascuno con colore, ingombro e fisica distinti:
+
+1. **Auto a Combustione (Blu):** Veicoli standard da 4 metri.
+2. **Auto Elettriche (Verde):** Mezzi a impatto zero con accelerazione bruciante.
+3. **Autobus (Arancione):** Veicoli lunghi 10 metri, limitati nel codice ad una velocità ridotta che percorrono le corsie preferenziali rosate.
+4. **Camion**(**marrone**): Veicoli con le stesse caratteristiche degli autobus (ma non percorrono la corsia bus)
+
+### E. Gestione Avanzata degli Incroci e dei Semafori
+
+- **Incroci Multipli (FCFS):** Nel file sono definiti 7 incroci complessi. Tramite l'`IntersectionManager`, i veicoli che arrivano alla linea di stop cedono il passo con la regola *First-Come, First-Served*, evitando collisioni visive.
+- **Senso Unico Alternato con Semafori:** Nella zona cantiere di Viale Usberti (`viale_usberti_sx_S_N` e `viale_usberti_sx_N_S_Mid`) sono stati posizionati due semafori sincronizzati con cicli di verde/rosso (20s / 30s) per regolare il flusso su una strettoia.
+
+### F. Eventi Dinamici e Imprevisti (Attraversamento Animali)
+
+Dal file `unipr.json` è programmato un evento temporizzato:
+
+- **Attraversamento Animale:** Al secondo $t = 10\text{s}$, sul segmento 1 scompare un ostacolo/animale selvatico (marrone).
+- **Fisica dell'Accodamento:** Le auto in arrivo rilevano l'animale e frenano causando quindi un rallentamento
+- **Sblocco:** Dopo 10 secondi l'animale scompare e la coda di auto riparte naturalmente. L'evento si ripete ciclicamente ogni 45 secondi.
+
+### G. Telemetria OBU e Comunicazioni V2I / MQTT
+
+In background, il `CommunicationManager`:
+
+- Traccia la posizione reale di tutti i veicoli.
+- **Downlink V2I:** Se un veicolo passa sotto una RSU in un segmento con limite di velocità ridotto (in questo caso solo quelli nella via della mensa), l'RSU notifica l'OBU del veicolo per fargli abbassare la velocità.
+- **Uplink / Simulazione MQTT:** Ogni 10 secondi, per i veicoli che si trovano **all'interno del cerchio azzurro di una RSU**, viene aggregato un pacchetto di telemetria OBU (velocità, accelerazione, coordinate, RPM motore ed emissioni CO2) inviando un log a terminale.

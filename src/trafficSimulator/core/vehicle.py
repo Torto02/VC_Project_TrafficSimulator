@@ -28,11 +28,11 @@ class Vehicle:
         self.a = 0
         self.stopped = False
         
-        # --- FASE 2: Proprietà Descrittive ---
+
         self.vehicle_class = "car" # 'car', 'truck', 'bus', 'electric'
         self.engine_type = "combustion" # 'combustion', 'electric', 'hybrid'
         
-        # --- FASE 2: Dati OBU (On-Board Unit) ---
+
         self.obu_data = {
             "co2_emissions": 0.0,
             "engine_rpm": 800,
@@ -42,6 +42,7 @@ class Vehicle:
             "rain_sensor": False
         }
 
+    # funzione per inizializzare le proprietà derivate dalla configurazione
     def init_properties(self):
         self.sqrt_ab = 2*np.sqrt(self.a_max*self.b_max)
         self._v_max = self.v_max
@@ -93,14 +94,14 @@ class Vehicle:
         """Calcola e aggiorna i valori simulati dell'OBU basandosi sulla fisica attuale"""
         speed_factor = max(0, min(1, self.v / self.v_max)) # 0.0 -> 1.0
         
-        # 1. RPM del Motore
+        # RPM del Motore
         if self.engine_type == "combustion":
             base_rpm = 800
             # Aumenta i giri con la velocità e li fa schizzare con l'accelerazione
             calculated_rpm = base_rpm + int(speed_factor * 2500) + int(self.a * 200)
             self.obu_data["engine_rpm"] = max(base_rpm, calculated_rpm)
             
-            # 2. Emissioni di CO2 (approssimazione g/s)
+            # Emissioni di CO2 (approssimazione g/s)
             idle_emission = 0.5
             accel_penalty = max(0, self.a) * 2.5 # Emette molto in accelerazione
             speed_penalty = speed_factor * 1.5   # Consuma di più ad alte velocità

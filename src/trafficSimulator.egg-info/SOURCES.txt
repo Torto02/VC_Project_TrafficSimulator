@@ -1,8 +1,8 @@
 MANIFEST.in
+README.md
 pyproject.toml
 requirements.txt
 examples/.DS_Store
-examples/__init__.py
 examples/unipr_map.py
 examples/__pycache__/__init__.cpython-314.pyc
 examples/__pycache__/test.cpython-314.pyc

@@ -10,6 +10,7 @@ from ..traffic_light import TrafficLight
 
 
 class Segment(ABC):
+    # Classe base per i segmenti stradali. I segmenti sono definiti da una sequenza di punti (x, y) e possono avere un semaforo associato
     def __init__(self, points, identifier="", max_speed=16.6, category="general", material="asphalt"):
         self.points = points
         self.identifier = identifier
@@ -25,12 +26,10 @@ class Segment(ABC):
         """Assegna un ciclo semaforico alla fine di questo segmento stradale"""
         self.traffic_light = TrafficLight(phases)
         
-
+    # Restituisce la distanza dalla stop-line, se presente, altrimenti restituisce la lunghezza del segmento meno 2 metri
     def set_functions(self):
-        # Point
         self.get_point = interp1d(linspace(0, 1, len(self.points)), self.points, axis=0)
         
-        # Heading
         headings = unwrap([arctan2(
             self.points[i+1][1] - self.points[i][1],
             self.points[i+1][0] - self.points[i][0]
@@ -40,6 +39,7 @@ class Segment(ABC):
         else:
             self.get_heading = interp1d(linspace(0, 1, len(self.points)-1), headings, axis=0)
 
+    # Restituisce la lunghezza del segmento 
     def get_length(self):
         length = 0
         for i in range(len(self.points) -1):

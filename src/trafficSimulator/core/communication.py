@@ -1,7 +1,7 @@
 import math
 import json
 
-class CommunicationManager:
+class CommunicationManager: # Gestisce la comunicazione V2I tra veicoli e RSU, inviando telemetria e ricevendo avvisi.
     def __init__(self, simulation):
         # Riferimento alla simulazione per leggere veicoli, segmenti ed ambiente.
         self.simulation = simulation
@@ -25,7 +25,7 @@ class CommunicationManager:
         progress = max(0.0, min(1.0, vehicle.x / segment.get_length()))
         return segment.get_point(progress)
 
-    def _get_connected_rsu(self, veh_pos):
+    def _get_connected_rsu(self, veh_pos): 
         """Trova la prima RSU che copre la posizione del veicolo.
 
         Se il veicolo è fuori copertura, restituisce `None`.

@@ -171,47 +171,47 @@ sim.create_quadratic_bezier_curve("parcheggio_usberti", "viale_usberti_sx_dx", i
 
 
 sim.create_intersection([
-    {"segment_index": 1, "clearance_distance": 20.0},
-    {"segment_index": 12, "clearance_distance": 20.0},
-    {"segment_index": 17, "clearance_distance": 20.0},
-    {"segment_index": 8, "clearance_distance": 20.0},
+    {"segment_index": 1, "clearance_distance": 5.0, },
+    {"segment_index": 12, "clearance_distance": 5.0, },
+    {"segment_index": 17, "clearance_distance": 5.0, },
+    {"segment_index": 8, "clearance_distance": 5.0, },
 ])
 
 sim.create_intersection([
-    {"segment_index": 3, "clearance_distance": 10.0},
-    {"segment_index": 7, "clearance_distance": 10.0},
-    {"segment_index": 5, "clearance_distance": 10.0},
-    {"segment_index": 0, "clearance_distance": 10.0},
+    {"segment_index": 3, "clearance_distance": 5.0, },
+    {"segment_index": 7, "clearance_distance": 5.0, },
+    {"segment_index": 5, "clearance_distance": 5.0, },
+    {"segment_index": 0, "clearance_distance": 5.0, },
 ])
 
 sim.create_intersection([
-    {"segment_index": 9, "clearance_distance": 10.0},
-    {"segment_index": 76, "clearance_distance": 10.0},
-    {"segment_index": 10, "clearance_distance": 10.0}
+    {"segment_index": 9, "clearance_distance": 5.0, },
+    {"segment_index": 76, "clearance_distance": 5.0, },
+    {"segment_index": 10, "clearance_distance": 5.0, }
 ])
 
 sim.create_intersection([
-    {"segment_index": 45, "clearance_distance": 10.0},
-    {"segment_index": 44, "clearance_distance": 10.0},
-    {"segment_index": 74, "clearance_distance": 10.0},
+    {"segment_index": 45, "clearance_distance": 5.0, },
+    {"segment_index": 44, "clearance_distance": 5.0, },
+    {"segment_index": 74, "clearance_distance": 5.0, },
 ])
 
 sim.create_intersection([
-    {"segment_index": 52, "clearance_distance": 20.0},
-    {"segment_index": 54, "clearance_distance": 20.0},
-    {"segment_index": 55, "clearance_distance": 20.0},
+    {"segment_index": 52, "clearance_distance": 5.0, },
+    {"segment_index": 54, "clearance_distance": 5.0, },
+    {"segment_index": 55, "clearance_distance": 5.0, },
 ])
 
 sim.create_intersection([
-    {"segment_index": 56, "clearance_distance": 10.0},
-    {"segment_index": 59, "clearance_distance": 10.0},
-    {"segment_index": 57, "clearance_distance": 10.0},
+    {"segment_index": 56, "clearance_distance": 5.0, },
+    {"segment_index": 59, "clearance_distance": 5.0, },
+    {"segment_index": 57, "clearance_distance": 5.0, },
 ])
 
 sim.create_intersection([
-    {"segment_index": 14, "clearance_distance": 10.0},
-    {"segment_index": 100, "clearance_distance": 10.0},
-    {"segment_index": 13, "clearance_distance": 10.0},
+    {"segment_index": 14, "clearance_distance": 5.0, },
+    {"segment_index": 100, "clearance_distance": 5.0, },
+    {"segment_index": 13, "clearance_distance": 5.0, },
 ])
 
 

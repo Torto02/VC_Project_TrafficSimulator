@@ -12,7 +12,7 @@ from .vehicle import Vehicle
 from .intersection_manager import IntersectionManager
 
 
-class Simulation:
+class Simulation: # Rappresenta lo stato globale della simulazione, gestendo veicoli, segmenti, generatori e sottosistemi ausiliari.
     def __init__(self, config_file="config.json"):
         # Carica la configurazione del progetto e inizializza lo stato globale della simulazione.
         self.config = Config(config_file)

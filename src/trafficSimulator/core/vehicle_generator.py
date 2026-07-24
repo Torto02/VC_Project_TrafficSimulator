@@ -54,3 +54,7 @@ class VehicleGenerator:
                 self.last_added_time = simulation.t
             # Prepara comunque il prossimo veicolo da tentare di inserire al tick successivo.
             self.upcoming_vehicle = self.generate_vehicle()
+
+
+
+

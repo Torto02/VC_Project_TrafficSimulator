@@ -1,4 +1,4 @@
-class TrafficLight:
+class TrafficLight: # Rappresenta un semaforo con fasi multiple.
     def __init__(self, phases):
         # Sequenza delle fasi del semaforo, ciascuna come (stato, durata).
         self.phases = phases

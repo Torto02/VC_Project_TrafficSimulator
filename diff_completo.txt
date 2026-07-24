@@ -1,0 +1,3014 @@
+diff --git a/.DS_Store b/.DS_Store
+index b12b20d..0e7c9af 100644
+Binary files a/.DS_Store and b/.DS_Store differ
+diff --git a/Analisi_Richieste_Progetto.md b/Analisi_Richieste_Progetto.md
+new file mode 100644
+index 0000000..10f974e
+--- /dev/null
++++ b/Analisi_Richieste_Progetto.md
+@@ -0,0 +1,212 @@
++# Traffic Simulator - Relazione di Progetto
++
++## 1. Topologie Avanzate e Incroci
++
++**Richiesta: Definire nuove topologie con segmenti multipli e intersezioni (es. Campus Scienze UNIPR, piccolo distretto, ecc.).**
++
++**Implementazione**: Il simulatore di base è stato esteso per supportare la creazione di mappe urbane complesse, nello specifico è stata mappata una versione semplificata del Campus dell'Università di Parma (file ``unipr_map.py``)
++
++Per gestire gli svincoli complessi e le intersezioni senza semafori, è stata sviluppata una classe dedicata `IntersectionManager`. Questa controlla il diritto di precedenza utilizzando una logica First-Come, First-Served (FCFS), calcolando il tempo di arrivo dei veicoli alla linea di stop e inserendo virtualmente un veicolo (ostacolo) invisibile per costringere gli altri a cedere la precedenza, azzerando le collisioni.
++
++**Esempio di utilizzo:**
++
++```python
++# Creazione di strade e rami dell'incrocio
++sim.create_segment((30, 210), (4, 210), identifier="viale_usberti_dx_sx")
++sim.create_segment((-158, 206), (-10, 206), identifier="viale_usberti_sx_dx")
++
++# Gestione di un incrocio definendo la distanza di arresto per ogni ramo
++sim.create_intersection([
++    {"segment_index": 1, "clearance_distance": 5.0},
++    {"segment_index": 12, "clearance_distance": 5.0},
++    {"segment_index": 17, "clearance_distance": 5.0}
++], mode="fcfs")
++```
++
++## 2. Categorie e Materiali Stradali
++
++**Richiesta: Disegnare i segmenti stradali con colori e spessori diversi in base a categoria (corsia generale, corsia bus, taxi) e materiale (asfalto, ghiaia, sterrato).**
++
++**Implementazione:** Il costruttore della classe astratta `Segment` (e di  `QuadraticCurve`  e  `CubicCurve`) è stato modificato per accettare i parametri  `category` (default: "general") e `material` (default: "asphalt"). All'interno del motore di rendering grafico (classe  `Window` in `window.py`), il metodo `draw_segments` decodifica questi attributi per modificare dinamicamente lo stile visivo del tracciato. Il rendering standard disegna asfalto in grigio chiaro; se la strada è di categoria `bus_lane`, viene renderizzata in rosato; se è categorizzata come `work_zone`, viene disegnata in arancione; infine, se la categoria è `dirt` o il materiale è `gravel`, il tracciato assume un colore marrone per simulare lo sterrato.
++
++**Esempio di utilizzo:**
++
++```python
++# Corsia standard in asfalto (default)
++sim.create_segment((110, 450), (124, 307), identifier="viale_usberti_dx_N_S")
++
++# Corsia preferenziale riservata agli autobus
++sim.create_segment((-10, 210), (-158, 210), identifier="viale_usberti_sx_sx", category="bus_lane")
++
++# Strada sterrata per cantieri
++sim.create_segment((0, 212), (0, 245), identifier="cantiere_S_N", category="dirt", material="gravel")
++
++# Zona lavori stradali
++sim.create_segment((-262, 320), (-262, 350), identifier="viale_usberti_lavori_S_N", category="work_zone")
++```
++
++## 3. Limite di Velocità e Segnaletica Intelligente V2I
++
++**Richiesta: Includere una proprietà per la velocità massima nei segmenti stradali, predisponendola per la gestione di warning inviati da elementi su strada (es. sistemi di controllo della velocità) verso i veicoli.**
++
++**Implementazione**: Nel costruttore delle geometrie stradali è stato aggiunto l'attributo `max_speed` (con un valore di default di 16.6 m/s, circa 60 km/h) ed è stata integrata nel modulo CommunicationManager. Quando un veicolo attraversa il raggio di coperturadi una RSU, viene simulata una comunicazione *Vehicle-to-Infrastructure* (V2I): l'RSU invia una notifica all'OBU del veicolo per aggiornare dinamicamente la sua velocità massima consentita (v_max) se il limite stradale locale è più restrittivo di quello preimpostato dalla classe del veicolo.
++
++**Esempio di utilizzo:**
++
++```python
++# Creazione di un segmento stradale con limite di velocità
++sim.create_segment((-262, 320), (-262, 350), identifier="viale_usberti_lavori_S_N", max_speed=40.0)
++
++# il CommunicationManager gestisce il cambio di velocità:
++if rsu_id and segment.max_speed < veh._v_max:
++   veh.v_max = segment.max_speed  # Il veicolo frena per rispettare il nuovo limite
++```
++
++## 4. Frecce Direzionali di Marcia
++
++**Richiesta: Disegnare una freccia all'interno di ogni carreggiata stradale per evidenziare la corretta direzione del viaggio.**
++
++```python
++# Le frecce direzionali vengono generate automaticamente per ogni strada definita nel simulatore.
++# Non è necessario alcun comando manuale, è sufficiente creare il tracciato:
++
++sim.create_segment((110, 450), (124, 307), identifier="viale_usberti_dx_N_S")
++# Genererà automaticamente una freccia orientata verso il basso (Nord -> Sud) al centro del segmento.
++```
++
++## 5. Identificatori Mnemonici e Costruzione Dinamica
++
++**Richiesta: Aggiungere la possibilità di assegnare un identificatore "mnemonico" (una stringa) ai segmenti stradali, per semplificare la loro gestione e il loro utilizzo durante la creazione della topologia.**
++
++**Implementazione:** Ogni segmento è stato arricchito con l'attributo `identifier`. Per sfruttarl la classe `Simulation` è stata modificata con la funzione `get_segment_by_id(identifier)`, che permette di ricercare un tratto stradale semplicemente dal suo nome.
++
++Le funzioni costruttrici (create_segment e create_quadratic_bezier_curve) ora accettano sia le classiche coordinate matematiche, sia direttamente gli identificatori in formato stringa. 
++
++**Esempio di utilizzo:**
++
++```python
++# 1. Si creano i segmenti assegnando un identificatore mnemonico
++sim.create_segment((30, 210), (4, 210), identifier="viale_usberti_dx")
++sim.create_segment((-158, 206), (-10, 206), identifier="viale_usberti_sx")
++
++# 2. Si collegano automaticamente richiamandoli per nome (il simulatore estrarrà i punti di inizio/fine in autonomia)
++sim.create_segment("viale_usberti_dx", "viale_usberti_sx", identifier="collegamento_dritto")
++
++# 3. Creazione di una curva automatica: il simulatore calcola da solo il vertice di tangenza per la curva di Bézier!
++sim.create_quadratic_bezier_curve("viale_usberti_dx", "viale_usberti_sx", identifier="curva_morbida_usberti")
++```
++
++## 6. Classi Veicolari Differenziate
++
++**Richiesta: Introdurre la possibilità di definire una "classe" per i veicoli, disegnandoli con colori e/o forme diverse in base a questa proprietà aggiuntiva (es. auto, camion, bus, veicolo elettrico, ecc.).**
++
++**Implementazione:** Alla classe `Vehicle` è stato aggiunto l'attributo `vehicle_class`: nel metodo di inizializzazione (`init_properties`), la fisica del veicolo muta in base alla classe. I camion (`truck`) e i bus (`bus`) subiscono un aumento di lunghezza (rispettivamente 8 e 10 metri) e una limitazione sull'accelerazione. I veicoli elettrici (`electric`), invece, ottengono una risposta in accelerazione (`a_max`) molto più rapida, simulando l'erogazione di coppia immediata dei motori a batteria. Nel motore grafico (`window.py`), il renderer differenzia visivamente il traffico:
++
++- **Car (Auto):** Blu standard
++- **Electric (Elettrica):** Verde acceso
++- **Truck (Camion):** Marrone (spessore maggiorato)
++- **Bus (Autobus):** Arancione (spessore maggiorato)
++
++**Esempio di utilizzo:**
++
++```python
++# Generazione di flussi di traffico misto basato sulle classi veicolari
++sim.create_vehicle_generator(
++    vehicle_rate=40,
++    vehicles=[
++        # Alta probabilità (peso 6) di generare un'auto
++        (6, {"path": [3, 22, 1, 34], "vehicle_class": "car"}),
++
++        # Probabilità inferiore (peso 2) di generare un mezzo elettrico scattante
++        (2, {"path": [3, 22, 1, 34], "vehicle_class": "electric"}),
++
++        # Probabilità rara (peso 1) di generare un mezzo pesante e lento
++        (1, {"path": [92, 89, 96], "vehicle_class": "truck"})
++    ]
++)
++```
++
++## 7. On-Board Unit (OBU) e Telemetria
++
++**Richiesta: Includere informazioni aggiuntive gestite dalle OBU a bordo dei veicoli (es. emissioni CO2, tipo di motore, RPM, temperatura AC, sensori, ecc.).**
++
++**Implementazione:** La classe `Vehicle` è stata arricchita con il dizionario di stato `obu_data`. Invece di limitarsi a valori statici, è stata implementata una funzione di calcolo dinamico (`update_telemetry`) che viene richiamata a ogni step della simulazione. 
++
++La telemetria è direttamente accoppiata al motore del veicolo:
++
++- **Motori a combustione**: I giri del motore (RPM) e le emissioni di CO2 variano in funzione dello `speed_factor` e subiscono un forte aumento durante l'accelerazione
++- **Motori elettrici**:Generano zero emissioni di CO2 e operano a regimi RPM calcolati in modo differenziato.
++- I valori di base per AC e sensori luce/pioggia possono essere preimpostati dal file JSON.
++
++## 8. Configurazione JSON (GUI e Simulazione)
++
++**Richiesta: Definire un file di configurazione (es. in formato JSON) per impostare la GUI (colori, dimensioni) e parametri della simulazione.**
++
++**Implementazione**: È stata creata la classe `Config` per il parsing di file esterni (es. `unipr.json`). Questo permette al JSON di gestire in modo centralizzato i dati:
++
++- Le impostazioni della finestra (risoluzione, titolo, colore di sfondo).
++- I flussi di traffico
++- Il posizionamento degli elementi infrastrutturali (Ambiente).
++- La programmazione temporale degli eventi.
++
++**Esempio di utilizzo**
++
++```python
++{
++  "gui": {
++    "window_title": "Traffic Simulator - Campus UNIPR",
++    "width": 1280,
++    "height": 720,
++    "bg_color": [245, 245, 250]
++  },
++  "simulation": {
++    "fps": 60
++  }
++}
++
++#Nel main della simulazione:
++sim = ts.Simulation(config_file="unipr.json") # Inizializza tutto dal JSON
++```
++
++## 9. Ambiente eRSU
++
++**Richiesta: Aggiungere componenti ambientali (alberi, edifici, RSU, ecc.)**
++
++**Implementazione**: Il sistema di rendering grafico è stato dotato di una funzioni che legge dal JSON e disegna edifici (building), alberi (tree) e parcheggi e altri elementi.
++
++Per le comunicazioni, è stata integrata la Road-Side Unit (RSU). Tramite il `CommunicationManager`,  a intervalli regolari viene calcolata la distanza euclidea tra i veicoli e le RSU.  Se un veicolo entra nel raggio di copertura:
++
++1. Aggrega i dati  (velocità, posizione) e la telemetria OBU del veicolo in un payload JSON formattato e lo "pubblica" a terminale, simulando la trasmissione verso un controllore remoto 
++2. L'RSU invia eventuali limiti di velocità locali all'OBU, che adatta la fisica di guida del mezzo in tempo reale.
++
++**Esempio di utilizzo:**
++
++```python
++// Configurazione nel file JSON per ambiente e RSU
++"environment": [
++  { "type": "building", "x": 70, "y": 250, "width": 40, "height": 20, "id": "mensa" },
++  { "type": "tree", "x": -130, "y": 185, "radius": 10, "id": "albero1" },
++  { "type": "rsu", "x": -260, "y": 380, "coverage": 130, "id": "rsu_usberti_polo_scienze" }
++]
++```
++
++## 10. Gestione Eventi (Lavori, Animali)
++
++**Richiesta: Implementare eventi accidentali (es. cantieri, attraversamento di animali) programmati nel tempo che generino congestione.**
++
++**Implementazione:** Il modulo `EventManager` legge gli eventi dal file JSON e li inietta nella simulazione allo scadere del tempo (`trigger_time`).  L'evento crea un veicolo fittizio sul tracciato stradale con velocità fissa a zero e gli viene assegnata una classe (es: animal o work_zone). In questo modo, le auto in arrivo rilevano l'animale come se fosse l'auto che le precede, e applicano nativamente l'algoritmo di car-following per frenare e accodarsi. Alla fine della durata dell'evento, il veicolo fittizio viene eliminato e il traffico riprende naturalmente.
++
++L'EventManager supporta anche eventi periodici tramite il parametro period.
++
++```python
++"events": [
++  {
++    "type": "animal",       // Tipo di evento (animal, work_zone)
++    "segment": 1,           // Indice della strada interessata
++    "position": 30,         // Posizione spaziale sul tratto
++    "trigger_time": 10.0,   // Inizio evento al secondo 10
++    "duration": 50.0,       // Durata del blocco in secondi prima dello sblocco
++    "period": 45            // Opzionale: ripete l'evento ciclicamente
++  }
++]
++```
+\ No newline at end of file
+diff --git a/ReadMe.md b/ReadMe.md
+new file mode 100644
+index 0000000..b8d6ef3
+--- /dev/null
++++ b/ReadMe.md
+@@ -0,0 +1,92 @@
++# Guida all'Installazione, Avvio e Analisi della Simulazione
++
++## 1. Guida all'Installazione ed Esecuzione
++
++### Passaggi per l'Installazione
++
++1. **Posizionarsi nella cartella principale del progetto:**
++    
++    Aprire il terminale e navigare nella cartella principale (`VC_Project_TrafficSimulator`):
++    
++2. **Creazione e attivazione dell'Ambiente Virtuale:** Per prevenire conflitti con i pacchetti di sistema è raccomandata la creazione di un ambiente Python isolato:
++    
++    ```bash
++    python3 -m venv venv
++    source venv/bin/activate
++    ```
++    
++3. **Installare il pacchetto in modalità editabile (`e`):**
++    
++    ```bash
++    python3 -m pip install -e .
++    ```
++    
++    *(Su Windows: `python -m pip install -e .`)*
++    
++4. **Esecuzione dello script principale:**
++    
++    Per lanciare la simulazione completa del Campus UNIPR:
++    
++    ```bash
++    python3 examples/unipr_map.py
++    ```
++    
++
++## 2. Spiegazione Dettagliata del File e delle Funzionalità Mostrate (`unipr_map.py` + `unipr.json`)
++
++Lo script `examples/unipr_map.py` e il relativo file di configurazione `unipr.json` integrano tutte le richieste del progetto finale e mostrano un'architettura completa per la gestione di un distretto urbano connesso. Di seguito viene spiegato tutto ciò che verrà mostrato in questa simulazione: 
++
++### A. Scenografia Ambientale e Infrastruttura (`unipr.json`)
++
++Appena avviata la finestra grafica, la mappa 2D renderizza:
++
++- **Edifici e Strutture reali del Campus UNIPR:** Renderizzati in grigio (es. *Mensa*, *Dipartimenti di Matematica, Chimica, Scienze*, *Cubi*).
++- **Zone Parcheggio:** Aree delimitatedi sosta disegnati visivamente in grigio scuro con strisce bianche.
++- **Aree Verdi e Alberi:** Centinaia di alberi di varie dimensioni organizzati in blocchi densi a riprodurre il parco del Campus.
++- **Nodi RSU (Road-Side Unit):** Rappresentati come antenne radio con **cerchi azzurri trasparenti** che delimitano la copertura wireless della rete V2I
++
++### B. Categorie Stradali, Materiali e Segnaletica
++
++Osservando le strade sulla mappa è possibile notare la differenziazione visiva:
++
++- **Asfalto Generale:** Linee grigio chiaro.
++- **Corsie Preferenziali Bus (`bus_lane`):** Colorate in **rosa** per evidenziare le corsie riservate ai mezzi pubblici
++- **Zona Cantiere e Lavori (`work_zone` / `dirt`):** Colorate in **arancione/marrone** per indicare il tratto sterrato/cantiere.
++- **Frecce Direzionali di Marcia:** Su ogni segmento principale è disegnata una freccia scura al centro della carreggiata per indicare il senso unico di percorrenza.
++
++### C. Topologia Avanzata e Collegamento Mnemonico
++
++Nel codice di `unipr_map.py` si nota l'uso degli **identificatori in stringa** (`identifier`):
++
++- Le strade vengono create e collegate per nome (es. `sim.create_segment("viale_usberti_dx_sx", "viale_usberti_sx_sx")`).
++- Le curve di raccordo calcolano autonomamente la tangente ideale partendo dai soli nomi delle strade collegate (es. `sim.create_quadratic_bezier_curve("Cubi_S_N_Up", "viale_usberti_dx_dx")`).
++
++### D. Classi Veicolari e Fisica Differenziata
++
++Durante l'esecuzione si muoveranno diversi tipi di veicoli, ciascuno con colore, ingombro e fisica distinti:
++
++1. **Auto a Combustione (Blu):** Veicoli standard da 4 metri.
++2. **Auto Elettriche (Verde):** Mezzi a impatto zero con accelerazione bruciante.
++3. **Autobus (Arancione):** Veicoli lunghi 10 metri, limitati nel codice ad una velocità ridotta che percorrono le corsie preferenziali rosate.
++4. **Camion**(**marrone**): Veicoli con le stesse caratteristiche degli autobus (ma non percorrono la corsia bus)
++
++### E. Gestione Avanzata degli Incroci e dei Semafori
++
++- **Incroci Multipli (FCFS):** Nel file sono definiti 7 incroci complessi. Tramite l'`IntersectionManager`, i veicoli che arrivano alla linea di stop cedono il passo con la regola *First-Come, First-Served*, evitando collisioni visive.
++- **Senso Unico Alternato con Semafori:** Nella zona cantiere di Viale Usberti (`viale_usberti_sx_S_N` e `viale_usberti_sx_N_S_Mid`) sono stati posizionati due semafori sincronizzati con cicli di verde/rosso (20s / 30s) per regolare il flusso su una strettoia.
++
++### F. Eventi Dinamici e Imprevisti (Attraversamento Animali)
++
++Dal file `unipr.json` è programmato un evento temporizzato:
++
++- **Attraversamento Animale:** Al secondo $t = 10\text{s}$, sul segmento 1 scompare un ostacolo/animale selvatico (marrone).
++- **Fisica dell'Accodamento:** Le auto in arrivo rilevano l'animale e frenano causando quindi un rallentamento
++- **Sblocco:** Dopo 10 secondi l'animale scompare e la coda di auto riparte naturalmente. L'evento si ripete ciclicamente ogni 45 secondi.
++
++### G. Telemetria OBU e Comunicazioni V2I / MQTT
++
++In background, il `CommunicationManager`:
++
++- Traccia la posizione reale di tutti i veicoli.
++- **Downlink V2I:** Se un veicolo passa sotto una RSU in un segmento con limite di velocità ridotto (in questo caso solo quelli nella via della mensa), l'RSU notifica l'OBU del veicolo per fargli abbassare la velocità.
++- **Uplink / Simulazione MQTT:** Ogni 10 secondi, per i veicoli che si trovano **all'interno del cerchio azzurro di una RSU**, viene aggregato un pacchetto di telemetria OBU (velocità, accelerazione, coordinate, RPM motore ed emissioni CO2) inviando un log a terminale.
+\ No newline at end of file
+diff --git a/config_bifurcation.json b/config_bifurcation.json
+deleted file mode 100644
+index 543b27e..0000000
+--- a/config_bifurcation.json
++++ /dev/null
+@@ -1,41 +0,0 @@
+-{
+-  "gui": {
+-    "window_title": "Traffic Simulator - Raccordo Multimodale e Biforcazioni",
+-    "width": 1280,
+-    "height": 720,
+-    "bg_color": [240, 245, 240]
+-  },
+-  "simulation": {
+-    "fps": 60
+-  },
+-  "environment": [
+-    { "type": "building", "x": -180, "y": -50, "width": 60, "height": 40 },
+-    { "type": "building", "x": -180, "y": 20, "width": 60, "height": 60 },
+-    { "type": "building", "x": 50, "y": 30, "width": 100, "height": 50 },
+-    { "type": "building", "x": 200, "y": -60, "width": 80, "height": 100 },
+-    { "type": "tree", "x": -80, "y": -120, "radius": 5 },
+-    { "type": "tree", "x": -30, "y": -150, "radius": 6 },
+-    { "type": "tree", "x": -60, "y": -200, "radius": 5 },
+-    { "type": "tree", "x": -20, "y": -250, "radius": 7 },
+-    { "type": "rsu", "x": -80, "y": -20, "coverage": 100 },
+-    { "type": "rsu", "x": -45, "y": -180, "coverage": 80 }
+-  ],
+-  "events": [
+-    {
+-      "type": "roadwork",
+-      "trigger_time": 12.0,
+-      "duration": 20.0,
+-      "period": 40.0,
+-      "segment": 1,
+-      "position": 100
+-    },
+-    {
+-      "type": "animal",
+-      "trigger_time": 5.0,
+-      "duration": 15.0,
+-      "period": 30.0,
+-      "segment": 3,
+-      "position": -200
+-    }
+-  ]
+-}
+diff --git a/config_open.json b/config_open.json
+deleted file mode 100644
+index 887ed85..0000000
+--- a/config_open.json
++++ /dev/null
+@@ -1,29 +0,0 @@
+-{
+-  "gui": {
+-    "window_title": "Traffic Simulator - Svincoli Aperti",
+-    "width": 1280,
+-    "height": 720,
+-    "bg_color": [230, 240, 230]
+-  },
+-  "simulation": {
+-    "fps": 60
+-  },
+-  "environment": [
+-    { "type": "building", "x": 0, "y": 100, "width": 80, "height": 80 },
+-    { "type": "building", "x": -100, "y": -150, "width": 120, "height": 60 },
+-    { "type": "tree", "x": 100, "y": -50, "radius": 4 },
+-    { "type": "tree", "x": 130, "y": -70, "radius": 5 },
+-    { "type": "tree", "x": -150, "y": 50, "radius": 6 },
+-    { "type": "rsu", "x": -50, "y": -50, "coverage": 150 }
+-  ],
+-  "events": [
+-    {
+-      "type": "roadwork",
+-      "trigger_time": 10.0,
+-      "duration": 15.0,
+-      "period": 40.0,
+-      "segment": 5,
+-      "position": 20
+-    }
+-  ]
+-}
+diff --git a/config_smartcity.json b/config_smartcity.json
+deleted file mode 100644
+index c8dd080..0000000
+--- a/config_smartcity.json
++++ /dev/null
+@@ -1,51 +0,0 @@
+-{
+-  "gui": {
+-    "window_title": "Traffic Simulator - Distretto Smart City & Test Track",
+-    "width": 1280,
+-    "height": 720,
+-    "bg_color": [235, 240, 245]
+-  },
+-  "simulation": {
+-    "fps": 60
+-  },
+-  "environment": [
+-    { "type": "building", "x": -200, "y": 100, "width": 60, "height": 60 },
+-    { "type": "building", "x": -100, "y": 150, "width": 80, "height": 40 },
+-    { "type": "building", "x": 50, "y": 150, "width": 120, "height": 30 },
+-    { "type": "building", "x": 200, "y": 50, "width": 40, "height": 100 },
+-    { "type": "building", "x": -50, "y": -100, "width": 70, "height": 50 },
+-    { "type": "building", "x": -200, "y": -150, "width": 90, "height": 40 },
+-    { "type": "tree", "x": 180, "y": 180, "radius": 6 },
+-    { "type": "tree", "x": -250, "y": 50, "radius": 5 },
+-    { "type": "tree", "x": 0, "y": 50, "radius": 4 },
+-    { "type": "tree", "x": 100, "y": -50, "radius": 4 },
+-    { "type": "tree", "x": -150, "y": -50, "radius": 5 },
+-    { "type": "rsu", "x": 0, "y": -200, "coverage": 120 },
+-    { "type": "rsu", "x": 150, "y": 100, "coverage": 100 },
+-    { "type": "rsu", "x": -150, "y": 50, "coverage": 100 }
+-  ],
+-  "events": [
+-    {
+-      "type": "roadwork",
+-      "trigger_time": 10.0,
+-      "duration": 15.0,
+-      "period": 35.0,
+-      "segment": 0,
+-      "position": 0
+-    },
+-    {
+-      "type": "animal",
+-      "trigger_time": 18.0,
+-      "duration": 12.0,
+-      "segment": 4,
+-      "position": 50
+-    },
+-    {
+-      "type": "roadwork",
+-      "trigger_time": 5.0,
+-      "duration": 20.0,
+-      "segment": 2,
+-      "position": -10
+-    }
+-  ]
+-}
+diff --git a/examples/.DS_Store b/examples/.DS_Store
+new file mode 100644
+index 0000000..5008ddf
+Binary files /dev/null and b/examples/.DS_Store differ
+diff --git a/examples/__pycache__/__init__.cpython-314.pyc b/examples/__pycache__/__init__.cpython-314.pyc
+new file mode 100644
+index 0000000..43a3028
+Binary files /dev/null and b/examples/__pycache__/__init__.cpython-314.pyc differ
+diff --git a/examples/__pycache__/test.cpython-314.pyc b/examples/__pycache__/test.cpython-314.pyc
+new file mode 100644
+index 0000000..d476eca
+Binary files /dev/null and b/examples/__pycache__/test.cpython-314.pyc differ
+diff --git a/examples/__pycache__/test1.cpython-314.pyc b/examples/__pycache__/test1.cpython-314.pyc
+new file mode 100644
+index 0000000..d9fed8f
+Binary files /dev/null and b/examples/__pycache__/test1.cpython-314.pyc differ
+diff --git a/examples/__pycache__/test_fase2.cpython-314.pyc b/examples/__pycache__/test_fase2.cpython-314.pyc
+new file mode 100644
+index 0000000..fac703f
+Binary files /dev/null and b/examples/__pycache__/test_fase2.cpython-314.pyc differ
+diff --git a/examples/__pycache__/test_intersection_priority.cpython-314.pyc b/examples/__pycache__/test_intersection_priority.cpython-314.pyc
+new file mode 100644
+index 0000000..86ce1dc
+Binary files /dev/null and b/examples/__pycache__/test_intersection_priority.cpython-314.pyc differ
+diff --git a/examples/__pycache__/unipr_map.cpython-314.pyc b/examples/__pycache__/unipr_map.cpython-314.pyc
+new file mode 100644
+index 0000000..68af6e1
+Binary files /dev/null and b/examples/__pycache__/unipr_map.cpython-314.pyc differ
+diff --git a/examples/campus_unipr.py b/examples/campus_unipr.py
+deleted file mode 100644
+index 97f1fc5..0000000
+--- a/examples/campus_unipr.py
++++ /dev/null
+@@ -1,46 +0,0 @@
+-import trafficSimulator as ts
+-
+-# Inizializzazione che carica in automatico config.json
+-sim = ts.Simulation()
+-
+-# --- TOPOLOGIA: PARCO AREA DELLE SCIENZE (UNIPR) ---
+-# Indice 0: Viale G. P. Usberti (Ingresso Sud)
+-sim.create_segment((-200, -100), (-100, 0), identifier="Viale_Usberti_Ingresso", max_speed=8.3, category="general")
+-
+-# Indice 1: Curva verso il Plesso di Ingegneria
+-sim.create_quadratic_bezier_curve((-100, 0), (-50, 50), (0, 50), identifier="Curva_Ingegneria", max_speed=8.3)
+-
+-# Indice 2: Rettilineo Sede Didattica / Scientifica Ingegneria
+-sim.create_segment((0, 50), (100, 50), identifier="Sede_Ingegneria", max_speed=8.3)
+-
+-# Indice 3: Curva e discesa verso la zona CUS
+-sim.create_cubic_bezier_curve((100, 50), (150, 50), (150, 150), (100, 150), identifier="Curva_CUS", max_speed=8.3)
+-
+-# Indice 4: Viale di uscita
+-sim.create_segment((100, 150), (-200, 150), identifier="Viale_Uscita", max_speed=8.3)
+-
+-# Indice 5: Raccordo ad anello per mantenere il traffico continuo (simula la rotonda di uscita)
+-sim.create_cubic_bezier_curve((-200, 150), (-250, 150), (-250, -100), (-200, -100), identifier="Rotonda_Raccordo", max_speed=8.3)
+-
+-
+-# --- GENERAZIONE DEL TRAFFICO ---
+-# Creiamo un flusso misto: auto degli studenti, autobus TEP (linee 7/14/21) e mezzi elettrici
+-sim.create_vehicle_generator(
+-    vehicle_rate=4, # Frequenza di immissione
+-    vehicles=[
+-        (15, {'path': [0, 1, 2, 3, 4, 5], 'vehicle_class': 'car'}),       # Studenti/Docenti
+-        (3,  {'path': [0, 1, 2, 3, 4, 5], 'vehicle_class': 'bus'}),       # Autobus TEP
+-        (2,  {'path': [0, 1, 2, 3, 4, 5], 'vehicle_class': 'truck'}),     # Furgoni consegne/manutenzione
+-        (4,  {'path': [0, 1, 2, 3, 4, 5], 'vehicle_class': 'electric'})   # Veicoli EV
+-    ]
+-)
+-
+-
+-# --- RENDERIZZAZIONE ---
+-win = ts.Window(sim)
+-
+-# Offset e Zoom iniziali per inquadrare bene la mappa del campus
+-win.zoom = 3.0
+-win.offset = (50, -20)
+-
+-win.show()
+\ No newline at end of file
+diff --git a/examples/test1.py b/examples/test1.py
+deleted file mode 100644
+index 9246da2..0000000
+--- a/examples/test1.py
++++ /dev/null
+@@ -1,54 +0,0 @@
+-from pathlib import Path
+-import sys
+-
+-REPO_ROOT = Path(__file__).resolve().parents[1]
+-SRC_DIR = REPO_ROOT / "src"
+-if str(SRC_DIR) not in sys.path:
+-    sys.path.insert(0, str(SRC_DIR))
+-
+-from trafficSimulator import *
+-
+-sim = Simulation()
+-
+-lane_space = 3.5
+-intersection_size = 12
+-length = 100
+-
+-# Order: SOUTH, EAST, NORTH, WEST
+-# Intersection in
+-sim.create_segment((lane_space/2, length+intersection_size/2), (lane_space/2, intersection_size/2))
+-sim.create_segment((length+intersection_size/2, -lane_space/2), (intersection_size/2, -lane_space/2))
+-sim.create_segment((-lane_space/2, -length-intersection_size/2), (-lane_space/2, -intersection_size/2))
+-sim.create_segment((-length-intersection_size/2, lane_space/2), (-intersection_size/2, lane_space/2))
+-# Intersection out
+-sim.create_segment((-lane_space/2, intersection_size/2), (-lane_space/2, length+intersection_size/2))
+-sim.create_segment((intersection_size/2, lane_space/2), (length+intersection_size/2, lane_space/2))
+-sim.create_segment((lane_space/2, -intersection_size/2), (lane_space/2, -length-intersection_size/2))
+-sim.create_segment((-intersection_size/2, -lane_space/2), (-length-intersection_size/2, -lane_space/2))
+-# Straight
+-sim.create_segment((lane_space/2, intersection_size/2), (lane_space/2, -intersection_size/2))
+-sim.create_segment((intersection_size/2, -lane_space/2), (-intersection_size/2, -lane_space/2))
+-sim.create_segment((-lane_space/2, -intersection_size/2), (-lane_space/2, intersection_size/2))
+-sim.create_segment((-intersection_size/2, lane_space/2), (intersection_size/2, lane_space/2))
+-# Right turn
+-sim.create_quadratic_bezier_curve((lane_space/2, intersection_size/2), (lane_space/2, lane_space/2), (intersection_size/2, lane_space/2))
+-sim.create_quadratic_bezier_curve((intersection_size/2, -lane_space/2), (lane_space/2, -lane_space/2), (lane_space/2, -intersection_size/2))
+-sim.create_quadratic_bezier_curve((-lane_space/2, -intersection_size/2), (-lane_space/2, -lane_space/2), (-intersection_size/2, -lane_space/2))
+-sim.create_quadratic_bezier_curve((-intersection_size/2, lane_space/2), (-lane_space/2, lane_space/2), (-lane_space/2, intersection_size/2))
+-# Left turn
+-sim.create_quadratic_bezier_curve((lane_space/2, intersection_size/2), (lane_space/2, -lane_space/2), (-intersection_size/2, -lane_space/2))
+-sim.create_quadratic_bezier_curve((intersection_size/2, -lane_space/2), (-lane_space/2, -lane_space/2), (-lane_space/2, intersection_size/2))
+-sim.create_quadratic_bezier_curve((-lane_space/2, -intersection_size/2), (-lane_space/2, lane_space/2), (intersection_size/2, lane_space/2))
+-sim.create_quadratic_bezier_curve((-intersection_size/2, lane_space/2), (lane_space/2, lane_space/2), (lane_space/2, -intersection_size/2))
+-
+-vg = VehicleGenerator({
+-    'vehicles': [
+-        (1, {'v': 16.6, 'path': [0, 12, 5]}),
+-        (1, {'v': 15.0, 'path': [0, 8, 6]})
+-    ]
+-})
+-sim.add_vehicle_generator(vg)
+-
+-win = Window(sim)
+-win.run()
+-win.show()
+\ No newline at end of file
+diff --git a/examples/test2.py b/examples/test2.py
+deleted file mode 100644
+index 7cf7648..0000000
+--- a/examples/test2.py
++++ /dev/null
+@@ -1,55 +0,0 @@
+-import trafficSimulator as ts
+-
+-sim = ts.Simulation(config_file="config_open.json")
+-
+-# --- TOPOLOGIA APERTA ---
+-
+-# 1. Autostrada Principale (Nasce a Ovest, Muore a Est)
+-sim.create_segment((-400, 0), (-100, 0), identifier="Hwy_Ingresso", max_speed=25.0)
+-sim.create_segment((-100, 0), (100, 0), identifier="Hwy_Centro", max_speed=25.0)
+-sim.create_segment((100, 0), (400, 0), identifier="Hwy_Uscita", max_speed=25.0)
+-
+-# 2. Rampa di Immissione (Nasce a Sud, si unisce in Centro)
+-sim.create_segment((-150, 300), (-150, 100), identifier="Rampa_In_Sud", max_speed=13.8)
+-sim.create_quadratic_bezier_curve((-150, 100), (-150, 0), (-100, 0), identifier="Curva_Immissione", max_speed=10.0)
+-
+-# 3. Rampa di Uscita (Si stacca in Centro, Muore a Nord)
+-sim.create_quadratic_bezier_curve((100, 0), (150, 0), (150, -100), identifier="Curva_Uscita", max_speed=10.0)
+-sim.create_segment((150, -100), (150, -300), identifier="Rampa_Out_Nord", max_speed=13.8)
+-
+-
+-# --- GENERATORI DI TRAFFICO (Con Flussi Infiniti) ---
+-
+-# Flusso 1: Viaggiatori autostradali (Da Ovest a Est: 0 -> 1 -> 2)
+-sim.create_vehicle_generator(
+-    vehicle_rate=6,
+-    vehicles=[
+-        (8, {'path': [0, 1, 2], 'vehicle_class': 'car'}),
+-        (3, {'path': [0, 1, 2], 'vehicle_class': 'truck'})
+-    ]
+-)
+-
+-# Flusso 2: Pendolari che entrano in autostrada da Sud (Da Sud a Est: 3 -> 4 -> 1 -> 2)
+-sim.create_vehicle_generator(
+-    vehicle_rate=4,
+-    vehicles=[
+-        (5, {'path': [3, 4, 1, 2], 'vehicle_class': 'car'}),
+-        (1, {'path': [3, 4, 1, 2], 'vehicle_class': 'bus'})
+-    ]
+-)
+-
+-# Flusso 3: Veicoli che escono dall'autostrada verso Nord
+-# Alcuni arrivano da Ovest (0 -> 1 -> 5 -> 6), altri entrano da Sud ed escono a Nord (3 -> 4 -> 1 -> 5 -> 6)
+-sim.create_vehicle_generator(
+-    vehicle_rate=5,
+-    vehicles=[
+-        (4, {'path': [0, 1, 5, 6], 'vehicle_class': 'electric'}),
+-        (2, {'path': [3, 4, 1, 5, 6], 'vehicle_class': 'car'})
+-    ]
+-)
+-
+-# --- RENDERIZZAZIONE ---
+-win = ts.Window(sim)
+-win.zoom = 1.5
+-win.offset = (0, 0)
+-win.show()
+\ No newline at end of file
+diff --git a/examples/test_fase1.py b/examples/test_fase1.py
+deleted file mode 100644
+index 44a804a..0000000
+--- a/examples/test_fase1.py
++++ /dev/null
+@@ -1,57 +0,0 @@
+-import trafficSimulator as ts
+-
+-# Carichiamo la configurazione avanzata
+-sim = ts.Simulation(config_file="config_smartcity.json")
+-
+-# --- TOPOLOGIA: DISTRETTO SMART CITY ---
+-
+-# Indice 0: Tangenziale Sud (Molto veloce: ~90 km/h)
+-sim.create_segment((-300, -200), (300, -200), identifier="Tangenziale_Sud", max_speed=25.0, category="general")
+-
+-# Indice 1: Svincolo Est (Media velocità, curva ampia)
+-sim.create_quadratic_bezier_curve((300, -200), (450, 0), (300, 200), identifier="Svincolo_Est", max_speed=13.8)
+-
+-# Indice 2: Viale Nord cittadino (Corsia preferenziale: ~50 km/h)
+-sim.create_segment((300, 200), (-100, 200), identifier="Viale_Nord", max_speed=13.8, category="bus_lane")
+-
+-# Indice 3: Ingresso Campus Ingegneria (Curva stretta, rallentamento: ~30 km/h)
+-sim.create_quadratic_bezier_curve((-100, 200), (-250, 100), (-100, 0), identifier="Ingresso_Campus", max_speed=8.3)
+-
+-# Indice 4: Viale Interno Sterrato (Zona di test sensori/sospensioni, molto lento: ~18 km/h)
+-sim.create_segment((-100, 0), (100, 0), identifier="Area_Test_Sterrato", max_speed=5.0, category="dirt", material="gravel")
+-
+-# Indice 5: Curva complessa di raccordo (Bézier Cubica)
+-sim.create_cubic_bezier_curve((100, 0), (150, 0), (0, -50), (0, -100), identifier="Curva_Laboratori", max_speed=8.3)
+-
+-# Indice 6: Immissione in Tangenziale
+-sim.create_quadratic_bezier_curve((0, -100), (0, -200), (-300, -200), identifier="Raccordo_Uscita", max_speed=13.8)
+-
+-
+-# --- GENERAZIONE DEL TRAFFICO ---
+-# Flusso continuo ad alta intensità che percorre l'intero anello (0 -> 6)
+-sim.create_vehicle_generator(
+-    vehicle_rate=5,
+-    vehicles=[
+-        (12, {'path': [0, 1, 2, 3, 4, 5, 6], 'vehicle_class': 'car'}),
+-        (3,  {'path': [0, 1, 2, 3, 4, 5, 6], 'vehicle_class': 'bus'}),
+-        (2,  {'path': [0, 1, 2, 3, 4, 5, 6], 'vehicle_class': 'truck'}),
+-        (5,  {'path': [0, 1, 2, 3, 4, 5, 6], 'vehicle_class': 'electric'})
+-    ]
+-)
+-
+-# Aggiungiamo un secondo generatore "ritardato" per immettere veicoli 
+-# direttamente dal viale Nord (indice 2) e creare interazioni di flusso
+-sim.create_vehicle_generator(
+-    vehicle_rate=3,
+-    vehicles=[
+-        (5, {'path': [2, 3, 4, 5, 6, 0, 1], 'vehicle_class': 'car'}),
+-        (2, {'path': [2, 3, 4, 5, 6, 0, 1], 'vehicle_class': 'truck'})
+-    ]
+-)
+-
+-# --- RENDERIZZAZIONE ---
+-win = ts.Window(sim)
+-# Uno zoom più ampio per godere dell'intera mappa
+-win.zoom = 1.8
+-win.offset = (0, 0)
+-win.show()
+\ No newline at end of file
+diff --git a/examples/test_fase2.py b/examples/test_fase2.py
+deleted file mode 100644
+index 8ad6e5c..0000000
+--- a/examples/test_fase2.py
++++ /dev/null
+@@ -1,53 +0,0 @@
+-import trafficSimulator as ts
+-import time
+-
+-sim = ts.Simulation()
+-
+-# Creazione di un percorso misto: 
+-# Usiamo i nuovi parametri 'category' e 'material'
+-sim.create_segment((0, 3), (150, 3), identifier="Via_Asfalto", category="general", material="asphalt")
+-sim.create_segment((150, 3), (250, 3), identifier="Via_Sterrato", category="dirt", material="gravel", max_speed=5.0)
+-
+-# Generatore che sputa diverse classi di veicoli
+-sim.create_vehicle_generator(
+-    vehicle_rate=5,
+-    vehicles=[
+-        # (Peso probabilità, Parametri del veicolo)
+-        (5, {'path': [0, 1], 'vehicle_class': 'car'}),
+-        (5, {'path': [0, 1], 'vehicle_class': 'truck'}),
+-        (3, {'path': [0, 1], 'vehicle_class': 'electric'})
+-    ]
+-)
+-
+-win = ts.Window(sim)
+-
+-# --- DEBUG SATELLITARE CORRETTO ---
+-def print_telemetry_hook(sim):
+-    # Aggiorniamo ogni 60 frame (circa 1 secondo) per leggibilità
+-    if sim.frame_count % 60 == 0 and len(sim.vehicles) > 0:
+-        
+-        # 1. Prova visiva della corretta generazione: contiamo la flotta
+-        counts = {}
+-        for v in sim.vehicles.values():
+-            counts[v.vehicle_class] = counts.get(v.vehicle_class, 0) + 1
+-            
+-        # 2. Leggiamo l'ULTIMO veicolo spawnato (indice -1)
+-        veh_id = list(sim.vehicles.keys())[-1]
+-        veh = sim.vehicles[veh_id]
+-        
+-        print(f"\n[RECAP FLOTTA] {counts}")
+-        print(f"[ULTIMO OBU {str(veh.id)[:8]}] "
+-              f"Classe: {veh.vehicle_class.upper()} | "
+-              f"Vel: {veh.v:.1f}m/s | "
+-              f"Accel: {veh.a:.1f}m/s² | "
+-              f"RPM: {veh.obu_data['engine_rpm']} | "
+-              f"CO2: {veh.obu_data['co2_emissions']:.2f} g/s")
+-
+-original_update = sim.update
+-def hooked_update():
+-    original_update()
+-    print_telemetry_hook(sim)
+-
+-sim.update = hooked_update
+-
+-win.show()
+\ No newline at end of file
+diff --git a/examples/test_fase3.py b/examples/test_fase3.py
+deleted file mode 100644
+index 6f1e8d3..0000000
+--- a/examples/test_fase3.py
++++ /dev/null
+@@ -1,22 +0,0 @@
+-import trafficSimulator as ts
+-
+-sim = ts.Simulation()
+-
+-# Creazione delle strade (interagiscono con l'ambiente definito in config.json)
+-sim.create_segment((0, 3), (100, 3), identifier="Via_A", category="general")
+-sim.create_segment((100, 3), (200, 3), identifier="Via_B", category="dirt", material="gravel")
+-sim.create_quadratic_bezier_curve((200, 3), (220, 0), (200, -3), identifier="Curva")
+-sim.create_segment((200, -3), (0, -3), identifier="Ritorno", category="bus_lane")
+-
+-# Generatore di veicoli misto
+-sim.create_vehicle_generator(
+-    vehicle_rate=3,
+-    vehicles=[
+-        (6, {'path': [0, 1, 2, 3], 'vehicle_class': 'car'}),
+-        (2, {'path': [0, 1, 2, 3], 'vehicle_class': 'truck'}),
+-        (2, {'path': [0, 1, 2, 3], 'vehicle_class': 'electric'})
+-    ]
+-)
+-
+-win = ts.Window(sim)
+-win.show()
+\ No newline at end of file
+diff --git a/examples/test_fase4.py b/examples/test_fase4.py
+deleted file mode 100644
+index 6319cd0..0000000
+--- a/examples/test_fase4.py
++++ /dev/null
+@@ -1,67 +0,0 @@
+-import trafficSimulator as ts
+-
+-sim = ts.Simulation(config_file="config_bifurcation.json")
+-
+-# --- TOPOLOGIA: RACCORDO MULTIMODALE ---
+-
+-# 1. SUPERSTRADA EST (Andata, da Ovest verso Est, y = -4)
+-sim.create_segment((-300, -4), (-100, -4), identifier="Hwy_Est_1", max_speed=25.0)
+-sim.create_segment((-100, -4), (300, -4), identifier="Hwy_Est_2", max_speed=25.0, category="bus_lane") # Corsia preferenziale dopo il bivio
+-
+-# 2. BIFORCAZIONE NORD (Strada sterrata lenta che devia dalla Superstrada)
+-# Rampa d'uscita (Curva verso Nord)
+-sim.create_quadratic_bezier_curve((-100, -4), (-50, -4), (-50, -100), identifier="Rampa_Uscita", max_speed=10.0, category="dirt", material="gravel")
+-# Tratto rettilineo verso Nord
+-sim.create_segment((-50, -100), (-50, -300), identifier="Via_Foresta_Andata", max_speed=8.0, category="dirt", material="gravel")
+-
+-# 3. RITORNO DALLA BIFORCAZIONE NORD
+-# Tratto rettilineo verso Sud (sfalsato di 8 metri sull'asse x per il doppio senso)
+-sim.create_segment((-42, -300), (-42, -100), identifier="Via_Foresta_Ritorno", max_speed=8.0, category="dirt", material="gravel")
+-# Rampa di immissione (Curva che si ricollega alla Superstrada Ovest)
+-sim.create_quadratic_bezier_curve((-42, -100), (-42, 4), (-100, 4), identifier="Rampa_Immissione", max_speed=13.8)
+-
+-# 4. SUPERSTRADA OVEST (Ritorno, da Est verso Ovest, y = 4)
+-sim.create_segment((300, 4), (-100, 4), identifier="Hwy_Ovest_1", max_speed=25.0)
+-sim.create_segment((-100, 4), (-300, 4), identifier="Hwy_Ovest_2", max_speed=25.0)
+-
+-# 5. RACCORDI INVISIBILI (U-Turns) PER FLUSSO CONTINUO
+-sim.create_quadratic_bezier_curve((300, -4), (330, 0), (300, 4), identifier="U-Turn_Est", max_speed=15.0)
+-sim.create_quadratic_bezier_curve((-300, 4), (-330, 0), (-300, -4), identifier="U-Turn_Ovest", max_speed=15.0)
+-sim.create_quadratic_bezier_curve((-50, -300), (-46, -330), (-42, -300), identifier="U-Turn_Nord", max_speed=5.0)
+-
+-
+-# --- GENERAZIONE DEL TRAFFICO E SCELTA DEI PERCORSI ---
+-
+-# Percorso 1 (Dritto sulla superstrada, fa il giro)
+-path_straight = [0, 1, 8, 6, 7, 9] 
+-# Percorso 2 (Prende la biforcazione, esplora lo sterrato e torna indietro)
+-path_bifurcation = [0, 2, 3, 10, 4, 5, 7, 9] 
+-
+-sim.create_vehicle_generator(
+-    vehicle_rate=7,
+-    vehicles=[
+-        # La maggior parte delle auto e dei camion va dritto ad alta velocità
+-        (10, {'path': path_straight, 'vehicle_class': 'car'}),
+-        (4,  {'path': path_straight, 'vehicle_class': 'truck'}),
+-        (3,  {'path': path_straight, 'vehicle_class': 'bus'}),
+-        
+-        # Una percentuale di veicoli elettrici e auto sceglie la via secondaria
+-        (4,  {'path': path_bifurcation, 'vehicle_class': 'electric'}),
+-        (3,  {'path': path_bifurcation, 'vehicle_class': 'car'})
+-    ]
+-)
+-
+-# Immettiamo anche traffico che nasce dal lato opposto (Est) per popolare subito la carreggiata di ritorno
+-sim.create_vehicle_generator(
+-    vehicle_rate=5,
+-    vehicles=[
+-        (6, {'path': [6, 7, 9, 0, 1, 8], 'vehicle_class': 'car'}),
+-        (3, {'path': [6, 7, 9, 0, 2, 3, 10, 4, 5], 'vehicle_class': 'truck'})
+-    ]
+-)
+-
+-# --- RENDERIZZAZIONE ---
+-win = ts.Window(sim)
+-win.zoom = 1.6
+-win.offset = (0, 70) # Sposta l'inquadratura per centrare la diramazione a Nord
+-win.show()
+\ No newline at end of file
+diff --git a/examples/test_twoway_segments.py b/examples/test_twoway_segments.py
+deleted file mode 100755
+index 0fbf9a9..0000000
+--- a/examples/test_twoway_segments.py
++++ /dev/null
+@@ -1,52 +0,0 @@
+-import trafficSimulator as ts
+-
+-# Carichiamo la nuova configurazione specifica
+-sim = ts.Simulation(config_file="config_twoway.json")
+-
+-# --- TOPOLOGIA: VIALE A DOPPIO SENSO ---
+-# Distanza dal centro (spartitraffico)
+-LANE_OFFSET = 4.0
+-
+-# CARREGGIATA EST (Andata: da sinistra verso destra)
+-# Indice 0: Primo tratto
+-sim.create_segment((-250, -LANE_OFFSET), (0, -LANE_OFFSET), identifier="Viale_Est_1", max_speed=13.8)
+-# Indice 1: Secondo tratto (corsia preferenziale per diversificare)
+-sim.create_segment((0, -LANE_OFFSET), (250, -LANE_OFFSET), identifier="Viale_Est_2", max_speed=13.8, category="bus_lane")
+-# Indice 2: Svincolo / Inversione a U Est
+-sim.create_quadratic_bezier_curve((250, -LANE_OFFSET), (280, 0), (250, LANE_OFFSET), identifier="Inversione_Est", max_speed=8.0)
+-
+-# CARREGGIATA OVEST (Ritorno: da destra verso sinistra)
+-# Indice 3: Primo tratto
+-sim.create_segment((250, LANE_OFFSET), (0, LANE_OFFSET), identifier="Viale_Ovest_1", max_speed=13.8)
+-# Indice 4: Secondo tratto
+-sim.create_segment((0, LANE_OFFSET), (-250, LANE_OFFSET), identifier="Viale_Ovest_2", max_speed=13.8)
+-# Indice 5: Svincolo / Inversione a U Ovest
+-sim.create_quadratic_bezier_curve((-250, LANE_OFFSET), (-280, 0), (-250, -LANE_OFFSET), identifier="Inversione_Ovest", max_speed=8.0)
+-
+-
+-# --- GENERAZIONE DEL TRAFFICO INDIPENDENTE ---
+-
+-# 1. Flusso Est (Percorso: 0 -> 1 -> 2 -> 3 -> 4 -> 5)
+-sim.create_vehicle_generator(
+-    vehicle_rate=6,
+-    vehicles=[
+-        (10, {'path': [0, 1, 2, 3, 4, 5], 'vehicle_class': 'car'}),
+-        (3,  {'path': [0, 1, 2, 3, 4, 5], 'vehicle_class': 'truck'})
+-    ]
+-)
+-
+-# 2. Flusso Ovest (Percorso partendo dal lato opposto: 3 -> 4 -> 5 -> 0 -> 1 -> 2)
+-# Generiamo i veicoli sfalsati in modo da vederli sfrecciare nei due sensi
+-sim.create_vehicle_generator(
+-    vehicle_rate=6,
+-    vehicles=[
+-        (8, {'path': [3, 4, 5, 0, 1, 2], 'vehicle_class': 'electric'}),
+-        (4, {'path': [3, 4, 5, 0, 1, 2], 'vehicle_class': 'bus'})
+-    ]
+-)
+-
+-# --- RENDERIZZAZIONE ---
+-win = ts.Window(sim)
+-win.zoom = 2.5
+-win.offset = (0, 0)
+-win.show()
+\ No newline at end of file
+diff --git a/examples/unipr_map.py b/examples/unipr_map.py
+new file mode 100644
+index 0000000..668371d
+--- /dev/null
++++ b/examples/unipr_map.py
+@@ -0,0 +1,313 @@
++import sys
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[1]
++SRC_DIR = REPO_ROOT / "src"
++if str(SRC_DIR) not in sys.path:
++    sys.path.insert(0, str(SRC_DIR))
++
++
++import trafficSimulator as ts
++
++sim = ts.Simulation(config_file="unipr.json")
++
++# Cubi - segmenti base
++sim.create_segment((-4, 200), (-4, 110), identifier="Cubi_N_S_Up", category="general")  #0
++sim.create_segment((0, 110), (0, 200), identifier="Cubi_S_N_Up", category="general")  #11
++sim.create_segment((-4, 100), (-4, 0), identifier="Cubi_N_S_Down", category="general")  #2
++sim.create_segment((0, 0), (0, 100), identifier="Cubi_S_N_Down", category="general")  #3
++
++# Parcheggio Cubi
++sim.create_segment((3, 103), (60, 103), identifier="parcheggio_cubi_dx_dx", category="general")  #4
++sim.create_segment((60, 107), (3, 107), identifier="parcheggio_cubi_dx_sx", category="general")  #5
++sim.create_segment((-7, 107), (-64, 107), identifier="parcheggio_cubi_sx_sx", category="general")  #6
++sim.create_segment((-64, 103), (-7, 103), identifier="parcheggio_cubi_sx_dx", category="general")  #7
++
++# Viale Usberti - tratto principale a destra
++sim.create_segment((30, 210), (4, 210), identifier="viale_usberti_dx_sx", category="general")  #8
++sim.create_segment((4, 206), (30, 206), identifier="viale_usberti_dx_dx", category="general")  #9
++sim.create_segment((105, 210), (45, 210), identifier="viale_usberti_dx_sx_Dx", category="general")  #10
++sim.create_segment((45, 206), (105, 206), identifier="viale_usberti_dx_dx_Dx", category="general")  #11
++
++# Viale Usberti - tratto principale a sinistra
++sim.create_segment((-158, 206), (-10, 206), identifier="viale_usberti_sx_dx", category="general")  #12
++sim.create_segment((-10, 210), (-158, 210), identifier="viale_usberti_sx_sx", category="bus_lane")  #13
++sim.create_segment((-230, 206), (-164, 206), identifier="viale_usberti_sx_dx_Sx", category="general")  #14
++sim.create_segment((-164, 210), (-230, 210), identifier="viale_usberti_sx_sx_Sx", category="bus_lane")  #15
++
++# Cantiere
++sim.create_segment((0, 212), (0, 245), identifier="cantiere_S_N", category="dirt", material="grvel")  #16
++sim.create_segment((-4, 245), (-4, 212), identifier="cantiere_N_S", category="dirt", material="grvel")  #17
++sim.create_segment((-10, 290), (-40, 361), identifier="cantiere_E_W", category="dirt", material="grvel")  #18
++sim.create_segment((-44, 360), (-14, 288), identifier="cantiere_W_E", category="dirt", material="grvel")  #19
++
++# Collegamenti tra i due tratti centrali
++sim.create_segment("viale_usberti_dx_sx", "viale_usberti_sx_sx", identifier="viale_usberti_dx_sx_to_viale_usberti_sx_sx", category="general")  #20
++sim.create_segment("viale_usberti_sx_dx", "viale_usberti_dx_dx", identifier="viale_usberti_sx_dx_to_viale_usberti_dx_dx", category="general")  #21
++
++# Collegamenti Cubi - parcheggi
++sim.create_segment("Cubi_S_N_Down", "Cubi_S_N_Up", identifier="Cubi_S_N_Down_to_Cubi_S_N_Up", category="general")  #22
++sim.create_segment("Cubi_N_S_Up", "Cubi_N_S_Down", identifier="Cubi_N_S_Up_to_Cubi_N_S_Down", category="general")  #23
++
++# Curve parcheggio Cubi
++sim.create_quadratic_bezier_curve("Cubi_S_N_Down", "parcheggio_cubi_dx_dx", identifier="Cubi_S_N_Down_to_parcheggio_cubi_dx_dx")  #24
++sim.create_quadratic_bezier_curve("Cubi_S_N_Down", "parcheggio_cubi_sx_sx", identifier="Cubi_S_N_Down_to_parcheggio_cubi_sx_sx")  #25
++sim.create_quadratic_bezier_curve("Cubi_N_S_Up", "parcheggio_cubi_dx_dx", identifier="Cubi_N_S_Up_to_parcheggio_cubi_dx_dx")  #26
++sim.create_quadratic_bezier_curve("Cubi_N_S_Up", "parcheggio_cubi_sx_sx", identifier="Cubi_S_N_Down_to_parcheggio_cubi_sx_sx")  #27
++sim.create_quadratic_bezier_curve("parcheggio_cubi_dx_sx", "Cubi_S_N_Up", identifier="Cubi_S_N_Down_to_parcheggio_cubi_dx_dx")  #28
++sim.create_quadratic_bezier_curve("parcheggio_cubi_sx_dx", "Cubi_S_N_Up", identifier="Cubi_S_N_Down_to_parcheggio_cubi_sx_sx")  #29
++sim.create_quadratic_bezier_curve("parcheggio_cubi_dx_sx", "Cubi_N_S_Down", identifier="Cubi_N_S_Up_to_parcheggio_cubi_dx_dx")  #30
++sim.create_quadratic_bezier_curve("parcheggio_cubi_sx_dx", "Cubi_N_S_Down", identifier="Cubi_S_N_Down_to_parcheggio_cubi_sx_sx")  #31
++
++# Curve cantiere
++sim.create_quadratic_bezier_curve("cantiere_S_N", "cantiere_E_W", identifier="cantiere_S_N_to_cantiere_E_W", category="dirt")  #32
++sim.create_quadratic_bezier_curve("cantiere_W_E", "cantiere_N_S", identifier="cantiere_W_E_to_cantiere_N_S", category="dirt")  #33
++
++# Cubi - Viale Usberti / Cantiere
++sim.create_quadratic_bezier_curve("Cubi_S_N_Up", "viale_usberti_dx_dx", identifier="Cubi_S_N_Up_to_viale_usberti_dx_dx")  #34
++sim.create_quadratic_bezier_curve("viale_usberti_dx_sx", "Cubi_N_S_Up", identifier="viale_usberti_dx_sx_to_Cubi_N_S_Up")  #35
++sim.create_quadratic_bezier_curve("Cubi_S_N_Up", "viale_usberti_sx_sx", identifier="Cubi_S_N_Up_to_viale_usberti_sx_sx")  #36
++sim.create_quadratic_bezier_curve("viale_usberti_sx_dx", "Cubi_N_S_Up", identifier="viale_usberti_sx_dx_to_Cubi_N_S_Up")  #37
++sim.create_quadratic_bezier_curve("Cubi_S_N_Up", "cantiere_S_N", identifier="Cubi_S_N_Up_to_cantiere_S_N")  #38
++sim.create_quadratic_bezier_curve("cantiere_N_S", "Cubi_N_S_Up", identifier="cantiere_N_S_to_Cubi_N_S_Up")  #39
++sim.create_quadratic_bezier_curve("viale_usberti_dx_sx", "cantiere_S_N", identifier="viale_usberti_dx_sx_to_cantiere_S_N")  #40
++sim.create_quadratic_bezier_curve("viale_usberti_sx_dx", "cantiere_S_N", identifier="viale_usberti_sx_dx_to_cantiere_S_N")  #41
++sim.create_quadratic_bezier_curve("cantiere_N_S", "viale_usberti_dx_dx", identifier="cantiere_N_S_to_viale_usberti_dx_dx")  #42
++
++# Viale Usberti - tratto verticale destra
++sim.create_segment((128, 307), (114, 450), identifier="viale_usberti_dx_S_N", category="general")  #43
++sim.create_segment((110, 450), (124, 307), identifier="viale_usberti_dx_N_S", category="general")  #44
++sim.create_segment((134, 245), (130, 298), identifier="viale_usberti_dx_S_N_down", category="general")  #45
++sim.create_segment((126, 298), (130, 245), identifier="viale_usberti_dx_N_S_down", category="general")  #46
++
++# Curve tratto verticale destra
++sim.create_quadratic_bezier_curve("viale_usberti_dx_dx_Dx", "viale_usberti_dx_S_N_down", identifier="viale_usberti_dx_dx_to_viale_usberti_dx_S_N")  #47
++sim.create_quadratic_bezier_curve("viale_usberti_dx_N_S_down", "viale_usberti_dx_sx_Dx", identifier="viale_usberti_dx_N_S_to_viale_usberti_dx_sx")  #48
++
++# Collegamenti interni tratto verticale destra
++sim.create_segment("viale_usberti_dx_S_N_down", "viale_usberti_dx_S_N", identifier="viale_usberti_dx_S_N_down_to_viale_usberti_dx_S_N", category="general")  #49
++sim.create_segment("viale_usberti_dx_N_S", "viale_usberti_dx_N_S_down", identifier="viale_usberti_dx_N_S_to_viale_usberti_dx_N_S_down", category="general")  #50
++
++# Viale Superiore e Viale Usberti alto
++sim.create_segment((-258, 480), (80, 480), identifier="viale_superiore_dx_W_E", category="general")  #51
++sim.create_segment((80, 484), (-258, 484), identifier="viale_superiore_dx_E_W", category="general")  #52
++sim.create_segment((-266, 484), (-400, 484), identifier="viale_superiore_sx_E_W", category="general")  #53
++sim.create_segment((-400, 480), (-266, 480), identifier="viale_superiore_sx_W_E", category="general")  #54
++sim.create_segment((-260, 402), (-260, 478), identifier="viale_usberti_sx_S_N_UP", category="bus_lane")  #55
++sim.create_segment((-264, 478), (-264, 402), identifier="viale_usberti_sx_N_S_UP", category="general")  #56
++sim.create_segment((-260, 370), (-260, 392), identifier="viale_usberti_sx_S_N_Mid", category="bus_lane")  #57
++sim.create_segment((-264, 392), (-264, 370), identifier="viale_usberti_sx_N_S_Mid", category="general")  #58
++sim.create_segment((-290, 394), (-270, 394), identifier="parc_scienze_dx", category="general")  #59
++sim.create_segment((-270, 398), (-290, 398), identifier="parc_scienze_sx", category="general")  #60
++
++sim.create_segment("viale_usberti_sx_S_N_Mid", "viale_usberti_sx_S_N_UP", identifier="viale_usberti_sx_S_N_Mid_to_viale_usberti_sx_S_N_UP", category="bus_lane")  #61
++sim.create_segment("viale_usberti_sx_N_S_UP", "viale_usberti_sx_N_S_Mid", identifier="viale_usberti_sx_N_S_UP_to_viale_usberti_sx_N_S_Mid", category="general")  #62
++
++# Curve tratto alto
++sim.create_quadratic_bezier_curve("viale_usberti_dx_S_N", "viale_superiore_dx_E_W", identifier="viale_usberti_dx_S_N_to_viale_superiore_dx_E_W")  #63
++sim.create_quadratic_bezier_curve("viale_superiore_dx_W_E", "viale_usberti_dx_N_S", identifier="viale_superiore_dx_W_E_to_viale_usberti_dx_N_S")  #64
++sim.create_quadratic_bezier_curve("parc_scienze_dx", "viale_usberti_sx_N_S_Mid", identifier="parc_scienze_dx_to_viale_usberti_sx_N_S_Mid")  #65
++sim.create_quadratic_bezier_curve("viale_usberti_sx_N_S_UP", "parc_scienze_sx", identifier="viale_usberti_sx_N_S_UP_to_viale_scienze_sx")  #66
++
++# Collegamenti Viale Superiore
++sim.create_segment("viale_superiore_sx_W_E", "viale_superiore_dx_W_E", identifier="viale_superiore_sx_W_E_to_viale_superiore_dx_W_E", category="general")  #67
++sim.create_segment("viale_superiore_dx_E_W", "viale_superiore_sx_E_W", identifier="viale_superiore_dx_E_W_to_viale_superiore_sx_E_W", category="general")  #68
++
++# Curve Viale Superiore
++sim.create_quadratic_bezier_curve("viale_usberti_sx_S_N_UP", "viale_superiore_dx_W_E", identifier="viale_usberti_sx_S_N_UP_to_viale_superiore_dx_W_E")  #69
++sim.create_quadratic_bezier_curve("viale_superiore_dx_E_W", "viale_usberti_sx_N_S_UP", identifier="viale_superiore_dx_E_W_to_viale_usberti_sx_N_S_UP")  #70
++sim.create_quadratic_bezier_curve("viale_usberti_sx_S_N_UP", "viale_superiore_sx_E_W", identifier="viale_usberti_sx_S_N_UP_to_viale_superiore_sx_E_W")  #71
++sim.create_quadratic_bezier_curve("viale_superiore_sx_W_E", "viale_usberti_sx_N_S_UP", identifier="viale_superiore_sx_W_E_to_viale_usberti_sx_N_S_UP")  #72
++
++# Viale Mensa
++sim.create_segment((120, 304), (50, 284), identifier="viale_mensa_E_W", category="general", max_speed=5)  #73
++sim.create_segment((50, 280), (120, 300), identifier="viale_mensa_W_E", category="general", max_speed=5)  #74
++sim.create_segment((39, 213), (39, 260), identifier="viale_mensa_S_N", category="general", max_speed=5)  #75
++sim.create_segment((35, 260), (35, 213), identifier="viale_mensa_N_S", category="general", max_speed=5)  #76
++
++# Curve Viale Mensa
++sim.create_quadratic_bezier_curve("viale_usberti_dx_N_S", "viale_mensa_E_W", identifier="viale_usberti_dx_N_S_to_viale_mensa_E_W")  #77
++sim.create_quadratic_bezier_curve("viale_mensa_W_E", "viale_usberti_dx_S_N", identifier="viale_mensa_W_E_to_viale_usberti_dx_S_N")  #78
++sim.create_quadratic_bezier_curve("viale_usberti_dx_S_N_down", "viale_mensa_E_W", identifier="viale_usberti_dx_S_N_down_to_viale_mensa_E_W")  #79
++sim.create_quadratic_bezier_curve("viale_mensa_W_E", "viale_usberti_dx_N_S_down", identifier="viale_mensa_W_E_to_viale_usberti_dx_N_S_down")  #80
++sim.create_quadratic_bezier_curve("viale_usberti_dx_sx_Dx", "viale_mensa_S_N", identifier="viale_usberti_dx_sx_Dx_to_viale_mensa_S_N")  #81
++sim.create_quadratic_bezier_curve("viale_usberti_dx_dx", "viale_mensa_S_N", identifier="viale_usberti_dx_dx_to_viale_mensa_S_N")  #82
++sim.create_quadratic_bezier_curve("viale_mensa_N_S", "viale_usberti_dx_sx", identifier="viale_mensa_N_S_to_viale_usberti_dx_sx")  #83
++sim.create_quadratic_bezier_curve("viale_mensa_N_S", "viale_usberti_dx_dx_Dx", identifier="viale_mensa_N_S_to_viale_usberti_dx_dx_Dx")  #84
++sim.create_quadratic_bezier_curve("viale_usberti_dx_dx", "viale_usberti_dx_dx_Dx", identifier="viale_usberti_dx_dx_to_viale_usberti_dx_dx_Dx")  #85
++sim.create_quadratic_bezier_curve("viale_usberti_dx_sx_Dx", "viale_usberti_dx_sx", identifier="viale_usberti_dx_sx_Dx_to_viale_usberti_dx_sx")  #86
++sim.create_quadratic_bezier_curve("viale_mensa_S_N", "viale_mensa_W_E", identifier="viale_mensa_S_N_to_viale_mensa_W_E", )  #87
++sim.create_quadratic_bezier_curve("viale_mensa_E_W", "viale_mensa_N_S", identifier="viale_mensa_E_W_to_viale_mensa_N_S")  #88
++
++# Viale Usberti sinistra - tratto basso
++sim.create_segment((-260, 230), (-260, 290), identifier="viale_usberti_sx_S_N", category="bus_lane")  #89
++sim.create_segment((-264, 290), (-264, 230), identifier="viale_usberti_sx_N_S", category="general")  #90
++
++# Curve tratto basso sinistro
++sim.create_quadratic_bezier_curve("viale_usberti_sx_N_S", "viale_usberti_sx_dx_Sx", identifier="viale_usberti_sx_N_S_to_viale_usberti_sx_dx")  #91
++sim.create_quadratic_bezier_curve("viale_usberti_sx_sx_Sx", "viale_usberti_sx_S_N", identifier="viale_usberti_sx_sx_to_viale_usberti_sx_S_N", category="bus_lane")  #92
++
++# Viale Usberti lavori
++sim.create_segment((-262, 320), (-262, 350), identifier="viale_usberti_lavori_S_N", category="work_zone")  #93
++sim.create_segment((-262, 350), (-262, 320), identifier="viale_usberti_lavori_N_S", category="work_zone")  #94
++
++# Curve lavori
++sim.create_quadratic_bezier_curve("viale_usberti_lavori_N_S", "viale_usberti_sx_N_S", identifier="viale_usberti_lavori_N_S_to_viale_usberti_sx_N_S")  #95
++sim.create_quadratic_bezier_curve("viale_usberti_sx_S_N", "viale_usberti_lavori_S_N", identifier="viale_usberti_sx_S_N_to_viale_usberti_lavori_S_N", category="bus_lane")  #96
++sim.create_quadratic_bezier_curve("viale_usberti_sx_N_S_Mid", "viale_usberti_lavori_N_S", identifier="viale_usberti_lavori_N_S_to_viale_usberti_sx_N_S")  #97
++sim.create_quadratic_bezier_curve("viale_usberti_lavori_S_N", "viale_usberti_sx_S_N_Mid", identifier="viale_usberti_lavori_S_N_to_viale_usberti_sx_S_N_Mid", category="bus_lane")  #98
++
++# Parcheggio lato usberti
++sim.create_segment((-160, 215), (-160, 230), identifier="usberti_parcheggio")  #99
++sim.create_segment((-164, 230), (-164, 215), identifier="parcheggio_usberti")  #100
++
++sim.create_segment("viale_usberti_sx_sx", "viale_usberti_sx_sx_Sx", identifier="viale_usberti_sx_sx_to_viale_usberti_sx_sx_Sx", category="bus_lane")  #101
++sim.create_segment("viale_usberti_sx_dx_Sx", "viale_usberti_sx_dx", identifier="viale_usberti_sx_dx_Sx_to_viale_usberti_sx_dx")  #102
++
++# Curve parcheggio usberti
++sim.create_quadratic_bezier_curve("viale_usberti_sx_dx_Sx", "usberti_parcheggio", identifier="viale_usberti_sx_dx_Sx_to_usberti_parcheggio")  #103
++sim.create_quadratic_bezier_curve("parcheggio_usberti", "viale_usberti_sx_dx", identifier="parcheggio_usberti_to_viale_usberti_sx_dx")  #104
++
++
++
++sim.create_intersection([
++    {"segment_index": 1, "clearance_distance": 20.0},
++    {"segment_index": 12, "clearance_distance": 20.0},
++    {"segment_index": 17, "clearance_distance": 20.0},
++    {"segment_index": 8, "clearance_distance": 20.0},
++])
++
++sim.create_intersection([
++    {"segment_index": 3, "clearance_distance": 10.0},
++    {"segment_index": 7, "clearance_distance": 10.0},
++    {"segment_index": 5, "clearance_distance": 10.0},
++    {"segment_index": 0, "clearance_distance": 10.0},
++])
++
++sim.create_intersection([
++    {"segment_index": 9, "clearance_distance": 10.0},
++    {"segment_index": 76, "clearance_distance": 10.0},
++    {"segment_index": 10, "clearance_distance": 10.0}
++])
++
++sim.create_intersection([
++    {"segment_index": 45, "clearance_distance": 10.0},
++    {"segment_index": 44, "clearance_distance": 10.0},
++    {"segment_index": 74, "clearance_distance": 10.0},
++])
++
++sim.create_intersection([
++    {"segment_index": 52, "clearance_distance": 20.0},
++    {"segment_index": 54, "clearance_distance": 20.0},
++    {"segment_index": 55, "clearance_distance": 20.0},
++])
++
++sim.create_intersection([
++    {"segment_index": 56, "clearance_distance": 10.0},
++    {"segment_index": 59, "clearance_distance": 10.0},
++    {"segment_index": 57, "clearance_distance": 10.0},
++])
++
++sim.create_intersection([
++    {"segment_index": 14, "clearance_distance": 10.0},
++    {"segment_index": 100, "clearance_distance": 10.0},
++    {"segment_index": 13, "clearance_distance": 10.0},
++])
++
++
++seg_lavori_SN = sim.get_segment_by_id("viale_usberti_sx_S_N")
++seg_lavori_NS = sim.get_segment_by_id("viale_usberti_sx_N_S_Mid")
++
++seg_lavori_SN.add_traffic_light([
++    ("green", 20),
++    ("red", 30)
++])
++
++seg_lavori_NS.add_traffic_light([
++    ("red", 20),
++    ("green", 30)
++])
++
++
++sim.create_vehicle_generator(
++    vehicle_rate=4,
++    vehicles=[
++        (1, {
++            "path": [3,22,1,34,9,85,11,47,45,49,43,63,52,68,53], 
++            "vehicle_class": "car", 
++            "engine_type": "combustion"
++        })
++    ]
++)
++
++sim.create_vehicle_generator(
++    vehicle_rate=4,
++    vehicles=[
++        (1, {
++            "path": [3,22,1,34,9,82,75,87,74,78,43,63,52,68,53], 
++            "vehicle_class": "car", 
++            "engine_type": "combustion"
++        })
++    ]
++)
++
++
++sim.create_vehicle_generator(
++    vehicle_rate=4,
++    vehicles=[
++        (1, {
++            "path": [54,72,56,62,58,97,94,95,90,91,14,102,12,37,0,26,4], 
++            "vehicle_class": "car", 
++            "engine_type": "electric"
++        })
++    ]
++)
++
++sim.create_vehicle_generator(
++    vehicle_rate=4,
++    vehicles=[
++        (1, {
++            "path": [100,104,12,21,9,82,75,87,74,78,43,63,52,68,53], 
++            "vehicle_class": "car", 
++            "engine_type": "electric"
++        })
++    ]
++)
++
++
++sim.create_vehicle_generator(
++    vehicle_rate=1,
++    vehicles=[
++        (1, {
++            "path": [3,22,1,34,9,85,11,47,45,49,43,63,52,68,53], 
++            "vehicle_class": "car", 
++            "engine_type": "combustion"
++        })
++    ]
++)
++
++sim.create_vehicle_generator(
++    vehicle_rate=1,
++    vehicles=[
++        (1, {
++            "path": [3,22,1,38,16,32,18], 
++            "vehicle_class": "truck", 
++            "engine_type": "combustion"
++        })
++    ]
++)
++
++sim.create_vehicle_generator(
++    vehicle_rate=1,
++    vehicles=[
++        (1, {
++            "path": [3,22,1,36,13,101,15,92,89,96,93,98,57,61,55,71,53], 
++            "vehicle_class": "bus", 
++            "engine_type": "combustion",
++            "v_max": 5.5
++        })
++    ]
++)
++
++win = ts.Window(sim)
++win.show()
+\ No newline at end of file
+diff --git a/sitecustomize.py b/sitecustomize.py
+deleted file mode 100644
+index 55cf09e..0000000
+--- a/sitecustomize.py
++++ /dev/null
+@@ -1,8 +0,0 @@
+-from pathlib import Path
+-import sys
+-
+-PROJECT_ROOT = Path(__file__).resolve().parent
+-SRC_DIR = PROJECT_ROOT / "src"
+-
+-if str(SRC_DIR) not in sys.path:
+-    sys.path.insert(0, str(SRC_DIR))
+diff --git a/src/.DS_Store b/src/.DS_Store
+index 7618f3e..178f80e 100644
+Binary files a/src/.DS_Store and b/src/.DS_Store differ
+diff --git a/src/trafficSimulator.egg-info/PKG-INFO b/src/trafficSimulator.egg-info/PKG-INFO
+index d00b5b4..fd675d7 100644
+--- a/src/trafficSimulator.egg-info/PKG-INFO
++++ b/src/trafficSimulator.egg-info/PKG-INFO
+@@ -23,3 +23,89 @@ Description-Content-Type: text/markdown
+ Requires-Dist: numpy
+ Requires-Dist: scipy
+ Requires-Dist: dearpygui
++
++# Guida all'Installazione, Avvio e Analisi della Simulazione
++
++## 1. Guida all'Installazione ed Esecuzione
++
++### Passaggi per l'Installazione
++
++1. **Posizionarsi nella cartella principale del progetto:**
++    
++    Aprire il terminale e navigare nella cartella principale (`VC_Project_TrafficSimulator`):
++    
++2. **Installare il pacchetto in modalità editabile (`e`):**
++    
++    ```bash
++    python3 -m pip install -e .
++    ```
++    
++    *(Su Windows: `python -m pip install -e .`)*
++    
++3. **Esecuzione dello script principale:**
++    
++    Per lanciare la simulazione completa del Campus UNIPR:
++    
++    ```bash
++    python3 examples/unipr_map.py
++    ```
++    
++
++## 2. Spiegazione Dettagliata del File e delle Funzionalità Mostrate (`unipr_map.py` + `unipr.json`)
++
++Lo script `examples/unipr_map.py` e il relativo file di configurazione `unipr.json` integrano tutte le richieste del progetto finale e mostrano un'architettura completa per la gestione di un distretto urbano connesso. Di seguito viene spiegato tutto ciò che verrà mostrato in questa simulazione: 
++
++### A. Scenografia Ambientale e Infrastruttura (`unipr.json`)
++
++Appena avviata la finestra grafica, la mappa 2D renderizza:
++
++- **Edifici e Strutture reali del Campus UNIPR:** Renderizzati in grigio (es. *Mensa*, *Dipartimenti di Matematica, Chimica, Scienze*, *Cubi*).
++- **Zone Parcheggio:** Aree delimitatedi sosta disegnati visivamente in grigio scuro con strisce bianche.
++- **Aree Verdi e Alberi:** Centinaia di alberi di varie dimensioni organizzati in blocchi densi a riprodurre il parco del Campus.
++- **Nodi RSU (Road-Side Unit):** Rappresentati come antenne radio con **cerchi azzurri trasparenti** che delimitano la copertura wireless della rete V2I
++
++### B. Categorie Stradali, Materiali e Segnaletica
++
++Osservando le strade sulla mappa è possibile notare la differenziazione visiva:
++
++- **Asfalto Generale:** Linee grigio chiaro.
++- **Corsie Preferenziali Bus (`bus_lane`):** Colorate in **rosa** per evidenziare le corsie riservate ai mezzi pubblici
++- **Zona Cantiere e Lavori (`work_zone` / `dirt`):** Colorate in **arancione/marrone** per indicare il tratto sterrato/cantiere.
++- **Frecce Direzionali di Marcia:** Su ogni segmento principale è disegnata una freccia scura al centro della carreggiata per indicare il senso unico di percorrenza.
++
++### C. Topologia Avanzata e Collegamento Mnemonico
++
++Nel codice di `unipr_map.py` si nota l'uso degli **identificatori in stringa** (`identifier`):
++
++- Le strade vengono create e collegate per nome (es. `sim.create_segment("viale_usberti_dx_sx", "viale_usberti_sx_sx")`).
++- Le curve di raccordo calcolano autonomamente la tangente ideale partendo dai soli nomi delle strade collegate (es. `sim.create_quadratic_bezier_curve("Cubi_S_N_Up", "viale_usberti_dx_dx")`).
++
++### D. Classi Veicolari e Fisica Differenziata
++
++Durante l'esecuzione si muoveranno diversi tipi di veicoli, ciascuno con colore, ingombro e fisica distinti:
++
++1. **Auto a Combustione (Blu):** Veicoli standard da 4 metri.
++2. **Auto Elettriche (Verde):** Mezzi a impatto zero con accelerazione bruciante.
++3. **Autobus (Arancione):** Veicoli lunghi 10 metri, limitati nel codice ad una velocità ridotta che percorrono le corsie preferenziali rosate.
++4. **Camion**(**marrone**): Veicoli con le stesse caratteristiche degli autobus (ma non percorrono la corsia bus)
++
++### E. Gestione Avanzata degli Incroci e dei Semafori
++
++- **Incroci Multipli (FCFS):** Nel file sono definiti 7 incroci complessi. Tramite l'`IntersectionManager`, i veicoli che arrivano alla linea di stop cedono il passo con la regola *First-Come, First-Served*, evitando collisioni visive.
++- **Senso Unico Alternato con Semafori:** Nella zona cantiere di Viale Usberti (`viale_usberti_sx_S_N` e `viale_usberti_sx_N_S_Mid`) sono stati posizionati due semafori sincronizzati con cicli di verde/rosso (20s / 30s) per regolare il flusso su una strettoia.
++
++### F. Eventi Dinamici e Imprevisti (Attraversamento Animali)
++
++Dal file `unipr.json` è programmato un evento temporizzato:
++
++- **Attraversamento Animale:** Al secondo $t = 10\text{s}$, sul segmento 1 scompare un ostacolo/animale selvatico (marrone).
++- **Fisica dell'Accodamento:** Le auto in arrivo rilevano l'animale e frenano causando quindi un rallentamento
++- **Sblocco:** Dopo 10 secondi l'animale scompare e la coda di auto riparte naturalmente. L'evento si ripete ciclicamente ogni 45 secondi.
++
++### G. Telemetria OBU e Comunicazioni V2I / MQTT
++
++In background, il `CommunicationManager`:
++
++- Traccia la posizione reale di tutti i veicoli.
++- **Downlink V2I:** Se un veicolo passa sotto una RSU in un segmento con limite di velocità ridotto (in questo caso solo quelli nella via della mensa), l'RSU notifica l'OBU del veicolo per fargli abbassare la velocità.
++- **Uplink / Simulazione MQTT:** Ogni 10 secondi, per i veicoli che si trovano **all'interno del cerchio azzurro di una RSU**, viene aggregato un pacchetto di telemetria OBU (velocità, accelerazione, coordinate, RPM motore ed emissioni CO2) inviando un log a terminale.
+diff --git a/src/trafficSimulator.egg-info/SOURCES.txt b/src/trafficSimulator.egg-info/SOURCES.txt
+index aad3d09..001c850 100644
+--- a/src/trafficSimulator.egg-info/SOURCES.txt
++++ b/src/trafficSimulator.egg-info/SOURCES.txt
+@@ -1,19 +1,28 @@
+ MANIFEST.in
++README.md
+ pyproject.toml
+ requirements.txt
+-examples/test1.py
+-examples/test2.py
+-examples/test_fase1.py
+-examples/test_twoway_segments.py
++examples/.DS_Store
++examples/unipr_map.py
++examples/__pycache__/__init__.cpython-314.pyc
++examples/__pycache__/test.cpython-314.pyc
++examples/__pycache__/test1.cpython-314.pyc
+ examples/__pycache__/test_fase1.cpython-314.pyc
++examples/__pycache__/test_fase2.cpython-314.pyc
++examples/__pycache__/test_intersection_priority.cpython-314.pyc
++examples/__pycache__/unipr_map.cpython-314.pyc
+ src/trafficSimulator/__init__.py
+ src/trafficSimulator.egg-info/PKG-INFO
+ src/trafficSimulator.egg-info/SOURCES.txt
+ src/trafficSimulator.egg-info/dependency_links.txt
+ src/trafficSimulator.egg-info/requires.txt
+ src/trafficSimulator.egg-info/top_level.txt
++src/trafficSimulator/core/communication.py
+ src/trafficSimulator/core/config.py
++src/trafficSimulator/core/event_manager.py
++src/trafficSimulator/core/intersection_manager.py
+ src/trafficSimulator/core/simulation.py
++src/trafficSimulator/core/traffic_light.py
+ src/trafficSimulator/core/vehicle.py
+ src/trafficSimulator/core/vehicle_generator.py
+ src/trafficSimulator/core/geometry/cubic_curve.py
+diff --git a/src/trafficSimulator/__init__.py b/src/trafficSimulator/__init__.py
+index 4952afe..51205a4 100755
+--- a/src/trafficSimulator/__init__.py
++++ b/src/trafficSimulator/__init__.py
+@@ -7,4 +7,5 @@ from .core.geometry.cubic_curve import CubicCurve
+ from .core.vehicle import Vehicle
+ from .core.vehicle_generator import VehicleGenerator
+ from .core.simulation import Simulation
+-from .visualizer.window import Window
+\ No newline at end of file
++from .visualizer.window import Window
++from .core.intersection_manager import IntersectionManager
+diff --git a/src/trafficSimulator/__pycache__/__init__.cpython-314.pyc b/src/trafficSimulator/__pycache__/__init__.cpython-314.pyc
+index 4980fa7..e4e8941 100644
+Binary files a/src/trafficSimulator/__pycache__/__init__.cpython-314.pyc and b/src/trafficSimulator/__pycache__/__init__.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/__pycache__/communication.cpython-314.pyc b/src/trafficSimulator/core/__pycache__/communication.cpython-314.pyc
+index 6ca3e23..8491d0c 100644
+Binary files a/src/trafficSimulator/core/__pycache__/communication.cpython-314.pyc and b/src/trafficSimulator/core/__pycache__/communication.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/__pycache__/config.cpython-314.pyc b/src/trafficSimulator/core/__pycache__/config.cpython-314.pyc
+index 7f76880..deb6414 100644
+Binary files a/src/trafficSimulator/core/__pycache__/config.cpython-314.pyc and b/src/trafficSimulator/core/__pycache__/config.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/__pycache__/event_manager.cpython-314.pyc b/src/trafficSimulator/core/__pycache__/event_manager.cpython-314.pyc
+index e2c3072..a02e3ce 100644
+Binary files a/src/trafficSimulator/core/__pycache__/event_manager.cpython-314.pyc and b/src/trafficSimulator/core/__pycache__/event_manager.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/__pycache__/intersection_manager.cpython-314.pyc b/src/trafficSimulator/core/__pycache__/intersection_manager.cpython-314.pyc
+new file mode 100644
+index 0000000..bacd4ca
+Binary files /dev/null and b/src/trafficSimulator/core/__pycache__/intersection_manager.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/__pycache__/simulation.cpython-314.pyc b/src/trafficSimulator/core/__pycache__/simulation.cpython-314.pyc
+index d3c691d..7b1b85f 100644
+Binary files a/src/trafficSimulator/core/__pycache__/simulation.cpython-314.pyc and b/src/trafficSimulator/core/__pycache__/simulation.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/__pycache__/traffic_light.cpython-314.pyc b/src/trafficSimulator/core/__pycache__/traffic_light.cpython-314.pyc
+new file mode 100644
+index 0000000..9ee45b4
+Binary files /dev/null and b/src/trafficSimulator/core/__pycache__/traffic_light.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/__pycache__/vehicle.cpython-314.pyc b/src/trafficSimulator/core/__pycache__/vehicle.cpython-314.pyc
+index e78367e..88293b8 100644
+Binary files a/src/trafficSimulator/core/__pycache__/vehicle.cpython-314.pyc and b/src/trafficSimulator/core/__pycache__/vehicle.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/__pycache__/vehicle_generator.cpython-314.pyc b/src/trafficSimulator/core/__pycache__/vehicle_generator.cpython-314.pyc
+index 9052ac9..da72347 100644
+Binary files a/src/trafficSimulator/core/__pycache__/vehicle_generator.cpython-314.pyc and b/src/trafficSimulator/core/__pycache__/vehicle_generator.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/communication.py b/src/trafficSimulator/core/communication.py
+index d13fb99..72d822c 100644
+--- a/src/trafficSimulator/core/communication.py
++++ b/src/trafficSimulator/core/communication.py
+@@ -1,40 +1,112 @@
++import math
+ import json
+ 
+ class CommunicationManager:
+     def __init__(self, simulation):
++        # Riferimento alla simulazione per leggere veicoli, segmenti ed ambiente.
+         self.simulation = simulation
++        # Ultimo istante in cui sono stati pubblicati i dati telemetrici.
+         self.last_send_time = 0
+-        self.send_interval = 2.0  # Frequenza di invio dei dati al TIS (es. ogni 2 secondi)
++        # Intervallo minimo tra due invii telemetrici consecutivi.
++        self.send_interval = 10.0 
++
++    def _get_vehicle_world_pos(self, vehicle):
++        """Restituisce la posizione reale del veicolo nel mondo simulato.
++
++        La posizione viene calcolata sul segmento corrente usando il progresso
++        del veicolo lungo la strada.
++        """
++        if vehicle.current_road_index >= len(vehicle.path):
++            return None
++        seg_idx = vehicle.path[vehicle.current_road_index]
++        segment = self.simulation.segments[seg_idx]
++        
++        # Converte l'avanzamento lineare del veicolo in una frazione del segmento.
++        progress = max(0.0, min(1.0, vehicle.x / segment.get_length()))
++        return segment.get_point(progress)
++
++    def _get_connected_rsu(self, veh_pos):
++        """Trova la prima RSU che copre la posizione del veicolo.
++
++        Se il veicolo è fuori copertura, restituisce `None`.
++        """
++        if veh_pos is None:
++            return None
++        
++        vx, vy = veh_pos
++        # Scorre tutte le RSU presenti nell'ambiente e verifica la distanza.
++        for item in self.simulation.environment:
++            if item.get("type") == "rsu":
++                rx, ry = item.get("x", 0), item.get("y", 0)
++                coverage = item.get("coverage", 50)
++                dist = math.sqrt((vx - rx)**2 + (vy - ry)**2)
++                if dist <= coverage:
++                    return item.get("id", "rsu_unknown")
++        return None
+ 
+     def update(self):
++        # Ogni ciclo prima aggiorna gli avvisi V2I, poi invia telemetria a intervalli.
++        self.process_downlink_warnings()
++
+         if self.simulation.t - self.last_send_time >= self.send_interval:
+             self.publish_telemetry()
+             self.last_send_time = self.simulation.t
+ 
++    def process_downlink_warnings(self):
++        """Aggiorna il limite di velocità dei veicoli in base alle RSU connesse."""
++        for veh_id, veh in self.simulation.vehicles.items():
++            # Veicoli speciali come animali e lavori stradali non ricevono questo trattamento.
++            if getattr(veh, 'vehicle_class', '') in ['animal', 'roadwork']:
++                continue
++
++            # Recupera posizione corrente e RSU eventualmente raggiunta.
++            pos = self._get_vehicle_world_pos(veh)
++            rsu_id = self._get_connected_rsu(pos)
++
++            if rsu_id and veh.current_road_index < len(veh.path):
++                seg_idx = veh.path[veh.current_road_index]
++                segment = self.simulation.segments[seg_idx]
++
++                # Se il segmento ha un limite più basso, lo applica al veicolo.
++                if hasattr(segment, 'max_speed') and segment.max_speed < veh._v_max:
++                    veh.v_max = segment.max_speed
++                else:
++                    veh.v_max = veh._v_max  
++
++            else:
++                # Fuori copertura: ripristina il limite massimo originale.
++                veh.v_max = veh._v_max  
++
+     def publish_telemetry(self):
++        """Costruisce e stampa il payload telemetrico dei veicoli connessi."""
+         payload = []
+         for veh_id, veh in self.simulation.vehicles.items():
+-            # Escludiamo gli ostacoli fittizi dalla telemetria
++            # Esclude i veicoli speciali anche dalla telemetria.
+             if getattr(veh, 'vehicle_class', '') in ['animal', 'roadwork']:
+                 continue
++
++            # Include solo i veicoli effettivamente in copertura RSU.
++            pos = self._get_vehicle_world_pos(veh)
++            rsu_id = self._get_connected_rsu(pos)
+             
+-            # Formattazione del pacchetto dati
+-            data = {
+-                "vehicle_id": str(veh_id)[:8],
+-                "class": getattr(veh, 'vehicle_class', 'car'),
+-                "kinematics": {
+-                    "speed": round(veh.v, 2),
+-                    "acceleration": round(veh.a, 2),
+-                    "position_x": round(veh.x, 2)
++            if rsu_id:
++                # Dati essenziali per l'invio V2I.
++                data = {
++                    "vehicle_id": str(veh_id)[:8],
++                    "class": getattr(veh, 'vehicle_class', 'car'),
++                    "connected_rsu": rsu_id,
++                    "kinematics": {
++                        "speed": round(veh.v, 2),
++                        "acceleration": round(veh.a, 2),
++                        "world_pos": [round(pos[0], 2), round(pos[1], 2)]
++                    }
+                 }
+-            }
+-            # Integrazione dei dati OBU (Sensori, Motore, Emissioni)
+-            if hasattr(veh, 'obu_data'):
+-                data["obu"] = veh.obu_data
++                if hasattr(veh, 'obu_data'):
++                    data["obu"] = veh.obu_data
++                payload.append(data)
+                 
+-            payload.append(data)
+-        
+         if payload:
+-            print(f"\n[MQTT/TIS] 📡 Pubblicazione telemetria per {len(payload)} veicoli aggregati via RSU...")
+-            # Scommenta la riga seguente per visualizzare l'effettivo JSON formattato nel terminale
+-            # print(json.dumps(payload, indent=2))
+\ No newline at end of file
++            # Stampa un riepilogo sintetico e il payload completo in JSON.
++            print(f"[MQTT/TIS] t={self.simulation.t:.1f}s | Ricevuti {len(payload)} pacchetti V2I tramite RSU attive.")
++
++            print(json.dumps(payload, indent=2))
+\ No newline at end of file
+diff --git a/src/trafficSimulator/core/event_manager.py b/src/trafficSimulator/core/event_manager.py
+index 2c83f38..99ef32f 100644
+--- a/src/trafficSimulator/core/event_manager.py
++++ b/src/trafficSimulator/core/event_manager.py
+@@ -3,49 +3,59 @@ from .vehicle import Vehicle
+ 
+ class EventManager:
+     def __init__(self, simulation):
++        # Riferimento alla simulazione per leggere tempo, segmenti e veicoli.
+         self.simulation = simulation
++        # Lista degli eventi caricati dalla configurazione.
+         self.events = simulation.config.get("events", [])
+-        self.active_obstacles = [] # Traccia gli ostacoli attivi per rimuoverli
++        # Ostacoli/eventi attivi che devono essere rimossi allo scadere.
++        self.active_obstacles = []
++        # Tiene traccia degli eventi singoli già attivati.
+         self.triggered_events = set()
+ 
+     def update(self):
++        """Controlla se qualche evento deve essere attivato o rimosso."""
+         t = self.simulation.t
+-        
+-        # 1. Attivazione nuovi eventi (con supporto alla periodicità)
++
++        # Scorre tutti gli eventi configurati e valuta se devono partire.
+         for i, event in enumerate(self.events):
+             is_periodic = "period" in event
+             
+             if is_periodic:
++                # Gli eventi periodici si ripetono ogni `period` secondi.
+                 period = event["period"]
+                 trigger_time = event.get("trigger_time", 0)
+-                # Imposta l'ultimo trigger a un valore fittizio per farlo scattare la prima volta
++            
++                # Se non esiste ancora, usa un tempo iniziale compatibile con il periodo.
+                 last_trigger = event.get("last_trigger_time", trigger_time - period)
+-                
+-                # Se abbiamo superato il trigger_time iniziale e il periodo è trascorso
++
++                # Attiva solo quando è scaduto il tempo minimo tra due attivazioni.
+                 if t >= trigger_time and t >= last_trigger + period:
+                     self.trigger_event(event)
+                     event["last_trigger_time"] = t
+             else:
+-                # Evento singolo classico
++                # Gli eventi singoli vengono attivati una sola volta.
+                 if i not in self.triggered_events and t >= event.get("trigger_time", 0):
+                     self.trigger_event(event)
+                     self.triggered_events.add(i)
+-                
+-        # 2. Rimozione eventi scaduti
++
++        # Rimuove gli ostacoli scaduti.
+         for obs_data in self.active_obstacles[:]:
+             if t >= obs_data['expire_time']:
+                 self.remove_event(obs_data)
+                 self.active_obstacles.remove(obs_data)
+ 
+     def trigger_event(self, event):
++        """Crea e inserisce nella simulazione un ostacolo/evento temporaneo."""
+         event_type = event.get("type", "obstacle")
+         segment_idx = event.get("segment", 0)
+         pos_x = event.get("position", 50)
+-        duration = event.get("duration", 15.0) # Durata di default
++        duration = event.get("duration", 15.0)
+         
++        # Dimensione semplificata dell'ostacolo in base al tipo di evento.
+         length = 2.0 if event_type == "animal" else 8.0
+         
+-        # Creazione ostacolo
++
++        # L'evento viene modellato come un veicolo fermo sul segmento indicato.
+         obstacle = Vehicle({
+             "path": [segment_idx],
+             "x": pos_x,
+@@ -55,17 +65,21 @@ class EventManager:
+             "l": length
+         })
+         
++        # Impedisce che l'ostacolo venga mosso dalla logica normale dei veicoli.
+         obstacle.update = lambda lead, dt: None 
+         
+         if segment_idx < len(self.simulation.segments):
+             segment = self.simulation.segments[segment_idx]
++            # Registra l'ostacolo nel segmento e nella lista globale dei veicoli.
+             segment.vehicles.append(obstacle.id)
+             self.simulation.vehicles[obstacle.id] = obstacle
+             
+-            # FIX CRUCIALE: Riordiniamo i veicoli sul segmento per posizione (x decrescente)
+-            # In questo modo il car-following rispetta sempre l'ordine spaziale fisico
++
++
++            # Riordina i veicoli del segmento per mantenere coerente la gestione delle distanze.
+             segment.vehicles = deque(sorted(segment.vehicles, key=lambda v_id: self.simulation.vehicles[v_id].x, reverse=True))
+             
++            # Memorizza quando l'evento dovrà essere rimosso.
+             self.active_obstacles.append({
+                 'obstacle_id': obstacle.id,
+                 'segment_idx': segment_idx,
+@@ -74,17 +88,21 @@ class EventManager:
+             print(f"[Event Manager] ⚠️ Evento attivato: {event_type.upper()} su segmento {segment_idx} (Dura {duration}s)")
+ 
+     def remove_event(self, obs_data):
++        """Rimuove un ostacolo temporaneo dalla simulazione e dal segmento."""
+         obs_id = obs_data['obstacle_id']
+         seg_idx = obs_data['segment_idx']
+         
+-        # Rimuoviamo l'ostacolo dal segmento e dalla memoria centrale
++
++        # Elimina il veicolo-ostacolo dal segmento se è ancora presente.
+         if seg_idx < len(self.simulation.segments):
+             segment = self.simulation.segments[seg_idx]
+             if obs_id in segment.vehicles:
+                 segment.vehicles.remove(obs_id)
+                 
++        # Rimuove l'istanza del veicolo dalla simulazione.
+         if obs_id in self.simulation.vehicles:
+             del self.simulation.vehicles[obs_id]
+             
+-        # FIX: Convertito obs_id in stringa prima di fare lo slicing [:4]
++
++        # Messaggio di log per indicare che il traffico è tornato libero.
+         print(f"[Event Manager] ✅ Evento {str(obs_id)[:4]}... risolto sul segmento {seg_idx}. Traffico in sblocco.")
+\ No newline at end of file
+diff --git a/src/trafficSimulator/core/geometry/__pycache__/cubic_curve.cpython-314.pyc b/src/trafficSimulator/core/geometry/__pycache__/cubic_curve.cpython-314.pyc
+index 2e6200d..fa5b75d 100644
+Binary files a/src/trafficSimulator/core/geometry/__pycache__/cubic_curve.cpython-314.pyc and b/src/trafficSimulator/core/geometry/__pycache__/cubic_curve.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/geometry/__pycache__/quadratic_curve.cpython-314.pyc b/src/trafficSimulator/core/geometry/__pycache__/quadratic_curve.cpython-314.pyc
+index 9209a14..ecebd60 100644
+Binary files a/src/trafficSimulator/core/geometry/__pycache__/quadratic_curve.cpython-314.pyc and b/src/trafficSimulator/core/geometry/__pycache__/quadratic_curve.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/geometry/__pycache__/segment.cpython-314.pyc b/src/trafficSimulator/core/geometry/__pycache__/segment.cpython-314.pyc
+index f2d1a8a..bd0768e 100644
+Binary files a/src/trafficSimulator/core/geometry/__pycache__/segment.cpython-314.pyc and b/src/trafficSimulator/core/geometry/__pycache__/segment.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/core/geometry/cubic_curve.py b/src/trafficSimulator/core/geometry/cubic_curve.py
+index 92163a9..21caf80 100755
+--- a/src/trafficSimulator/core/geometry/cubic_curve.py
++++ b/src/trafficSimulator/core/geometry/cubic_curve.py
+@@ -2,7 +2,6 @@ from .segment import Segment
+ 
+ CURVE_RESOLUTION = 50
+ 
+-# Modifica l'__init__ per propagare i parametri
+ class CubicCurve(Segment):
+     def __init__(self, start, control_1, control_2, end, identifier="", max_speed=16.6, category="general", material="asphalt"):
+         self.start = start
+diff --git a/src/trafficSimulator/core/geometry/quadratic_curve.py b/src/trafficSimulator/core/geometry/quadratic_curve.py
+index dfa83a9..e7adc2f 100755
+--- a/src/trafficSimulator/core/geometry/quadratic_curve.py
++++ b/src/trafficSimulator/core/geometry/quadratic_curve.py
+@@ -2,9 +2,6 @@ from .segment import Segment
+ 
+ PAS = 0.01
+ CURVE_RESOLUTION = 50
+-
+-# Modifica l'__init__ 
+-# Modifica l'__init__ per propagare i parametri
+ class QuadraticCurve(Segment):
+     def __init__(self, start, control, end, identifier="", max_speed=16.6, category="general", material="asphalt"):
+         self.start = start
+diff --git a/src/trafficSimulator/core/geometry/segment.py b/src/trafficSimulator/core/geometry/segment.py
+index 5c2e2ca..b0976ab 100755
+--- a/src/trafficSimulator/core/geometry/segment.py
++++ b/src/trafficSimulator/core/geometry/segment.py
+@@ -6,26 +6,30 @@ from abc import ABC, abstractmethod
+ from math import sqrt
+ from scipy.integrate import quad
+ 
+-# Modifica l'__init__ (le altre importazioni ed il resto restano uguali)
+-# Modifica l'__init__ della classe astratta
++from ..traffic_light import TrafficLight 
++
++
+ class Segment(ABC):
++    # Classe base per i segmenti stradali. I segmenti sono definiti da una sequenza di punti (x, y) e possono avere un semaforo associato
+     def __init__(self, points, identifier="", max_speed=16.6, category="general", material="asphalt"):
+         self.points = points
+         self.identifier = identifier
+-        # --- FASE 2: Nuovi attributi fisici e logici ---
+-        self.max_speed = max_speed  # in m/s (es. 16.6 m/s = ~60 km/h)
+-        self.category = category    # 'general', 'taxi', 'bus_lane'
+-        self.material = material    # 'asphalt', 'concrete', 'dirt'
+-        
++        self.max_speed = max_speed
++        self.category = category
++        self.material = material
+         self.vehicles = deque()
++        
++        self.traffic_light = None # Proprietà di default
+         self.set_functions()
+         
+-
++    def add_traffic_light(self, phases):
++        """Assegna un ciclo semaforico alla fine di questo segmento stradale"""
++        self.traffic_light = TrafficLight(phases)
++        
++    # Restituisce la distanza dalla stop-line, se presente, altrimenti restituisce la lunghezza del segmento meno 2 metri
+     def set_functions(self):
+-        # Point
+         self.get_point = interp1d(linspace(0, 1, len(self.points)), self.points, axis=0)
+         
+-        # Heading
+         headings = unwrap([arctan2(
+             self.points[i+1][1] - self.points[i][1],
+             self.points[i+1][0] - self.points[i][0]
+@@ -35,6 +39,7 @@ class Segment(ABC):
+         else:
+             self.get_heading = interp1d(linspace(0, 1, len(self.points)-1), headings, axis=0)
+ 
++    # Restituisce la lunghezza del segmento 
+     def get_length(self):
+         length = 0
+         for i in range(len(self.points) -1):
+diff --git a/src/trafficSimulator/core/intersection_manager.py b/src/trafficSimulator/core/intersection_manager.py
+new file mode 100644
+index 0000000..c49117b
+--- /dev/null
++++ b/src/trafficSimulator/core/intersection_manager.py
+@@ -0,0 +1,126 @@
++
++from .vehicle import Vehicle
++
++
++class IntersectionArm:
++    def __init__(self, segment_index, stop_distance=None, clearance_distance=15.0):
++        # Segmento che confluisce nell'intersezione.
++        self.segment_index = segment_index
++        # Distanza dalla quale il veicolo deve fermarsi se non è specificata altrove.
++        self.stop_distance = stop_distance          
++        # Distanza minima oltre la quale l'incrocio si considera liberato.
++        self.clearance_distance = clearance_distance  
++
++    def get_stop_distance(self, segment):
++        # Se è stata configurata una stop-line esplicita, usa quella.
++        if self.stop_distance is not None:
++            return self.stop_distance
++        # Altrimenti posiziona la stop-line quasi alla fine del segmento.
++        return max(0.0, segment.get_length() - 2.0)
++
++
++class Intersection:
++    def __init__(self, arms, mode="fcfs"):
++        # Mappa segmento -> braccio dell'intersezione.
++        self.arms = {a.segment_index: a for a in arms}
++        # Modalità di gestione della precedenza, di default first-come first-served.
++        self.mode = mode
++        # Segmento attualmente occupato dal veicolo con precedenza.
++        self.occupant_segment = None
++        # ID del veicolo che ha ottenuto la precedenza.
++        self.occupant_vehicle_id = None
++        # Tempi di arrivo dei veicoli alla stop-line.
++        self.arrival_times = {}  
++
++
++class IntersectionManager:
++    def __init__(self, simulation):
++        # Accesso alla simulazione per leggere segmenti, veicoli e tempo.
++        self.simulation = simulation
++        # Elenco delle intersezioni gestite.
++        self.intersections = []
++
++    def add_intersection(self, arms, mode="fcfs"):
++        """Crea una nuova intersezione a partire dai bracci configurati."""
++        built = [a if isinstance(a, IntersectionArm) else IntersectionArm(**a) for a in arms]
++        inter = Intersection(built, mode=mode)
++        self.intersections.append(inter)
++        return inter
++
++    def update(self):
++        # Ogni intersezione viene aggiornata in tre fasi: rilascio, tracking, assegnazione.
++        for inter in self.intersections:
++            self._release_if_cleared(inter)
++            self._track_arrivals(inter)
++            self._grant_priority(inter)
++
++    def _release_if_cleared(self, inter):
++        """Libera l'intersezione quando il veicolo che l'occupa l'ha oltrepassata."""
++        if inter.occupant_segment is None:
++            return
++        sim = self.simulation
++        veh = sim.vehicles.get(inter.occupant_vehicle_id)
++        arm = inter.arms[inter.occupant_segment]
++        # Se il veicolo non esiste più, azzera lo stato di occupazione.
++        if veh is None:
++            inter.occupant_segment = inter.occupant_vehicle_id = None
++            return
++        # Il veicolo è ancora sul braccio se il suo segmento corrente coincide con quello dell'intersezione.
++        still_on_arm = (
++            veh.current_road_index < len(veh.path)
++            and veh.path[veh.current_road_index] == arm.segment_index
++        )
++        # Se ha superato la clearance distance, l'intersezione torna libera.
++        if not still_on_arm and veh.x >= arm.clearance_distance:
++            inter.occupant_segment = inter.occupant_vehicle_id = None
++
++    def _track_arrivals(self, inter):
++        """Memorizza l'istante in cui il primo veicolo di un braccio raggiunge la stop-line."""
++        sim = self.simulation
++        for seg_idx, arm in inter.arms.items():
++            segment = sim.segments[seg_idx]
++            if not segment.vehicles:
++                continue
++            # Considera solo il primo veicolo della coda del segmento.
++            first_id = segment.vehicles[0]
++            first_veh = sim.vehicles[first_id]
++            # Una volta arrivato alla stop-line, registra il tempo di arrivo.
++            if first_veh.x >= arm.get_stop_distance(segment):
++                inter.arrival_times.setdefault(first_id, sim.t)
++            else:
++                # Se arretra rispetto alla stop-line, rimuove la candidatura.
++                inter.arrival_times.pop(first_id, None)
++
++    def _grant_priority(self, inter):
++        """Assegna la precedenza al veicolo arrivato prima tra i candidati."""
++        if inter.occupant_segment is not None:
++            return
++        sim = self.simulation
++        candidates = []
++        for seg_idx in inter.arms:
++            segment = sim.segments[seg_idx]
++            if not segment.vehicles:
++                continue
++            # Un candidato è il primo veicolo del braccio che ha già raggiunto la stop-line.
++            first_id = segment.vehicles[0]
++            if first_id in inter.arrival_times:
++                candidates.append((inter.arrival_times[first_id], seg_idx, first_id))
++        if candidates:
++            # FCFS: vince chi è arrivato prima.
++            candidates.sort(key=lambda c: c[0])  
++            _, seg_idx, veh_id = candidates[0]
++            inter.occupant_segment, inter.occupant_vehicle_id = seg_idx, veh_id
++
++    def get_virtual_lead(self, segment_index):
++        """Restituisce un veicolo virtuale fermo alla stop-line se il braccio è bloccato.
++
++        Serve come vincolo artificiale per impedire al veicolo reale di superare
++        l'intersezione quando non ha la precedenza.
++        """
++        for inter in self.intersections:
++            arm = inter.arms.get(segment_index)
++            if arm and inter.occupant_segment not in (None, segment_index):
++                # Crea un leader virtuale fermo nel punto di arresto del braccio.
++                segment = self.simulation.segments[segment_index]
++                return Vehicle({'x': arm.get_stop_distance(segment), 'v': 0, 'l': 0})
++        return None
+\ No newline at end of file
+diff --git a/src/trafficSimulator/core/simulation.py b/src/trafficSimulator/core/simulation.py
+index fafc390..cca0cbd 100755
+--- a/src/trafficSimulator/core/simulation.py
++++ b/src/trafficSimulator/core/simulation.py
+@@ -1,4 +1,5 @@
+-from collections import deque # Aggiungi questa riga
++from collections import deque 
++import math
+ 
+ from .config import Config
+ from .event_manager import EventManager
+@@ -8,104 +9,278 @@ from .geometry.quadratic_curve import QuadraticCurve
+ from .geometry.cubic_curve import CubicCurve
+ from .geometry.segment import Segment
+ from .vehicle import Vehicle
++from .intersection_manager import IntersectionManager
++
+ 
+ class Simulation:
+-    # ... resto del codice ...
+     def __init__(self, config_file="config.json"):
++        # Carica la configurazione del progetto e inizializza lo stato globale della simulazione.
+         self.config = Config(config_file)
++        # Segmenti stradali presenti nel modello.
+         self.segments = []
++        # Dizionario di tutti i veicoli attivi, indicizzati per id.
+         self.vehicles = {}
++        # Generatori di veicoli che inseriscono nuovi mezzi nel tempo.
+         self.vehicle_generator = []
++        # Tempo simulato corrente.
+         self.t = 0.0
++        # Numero di frame già elaborati.
+         self.frame_count = 0
++        # Passo temporale della simulazione, derivato dal frame rate.
+         self.dt = 1 / self.config.get("simulation.fps", 60)
++        # Oggetti ambientali statici, come RSU o altri elementi infrastrutturali.
+         self.environment = self.config.get("environment", [])
++        # Gestore delle intersezioni.
++        self.intersection_manager = IntersectionManager(self)
++        
+         
+-        # --- FASE 4: Inizializzazione Managers ---
++        # Gestori secondari che aggiornano eventi e comunicazioni V2I.
+         self.event_manager = EventManager(self)
+         self.communication_manager = CommunicationManager(self)
+ 
+     def add_vehicle(self, veh):
++        """Registra un veicolo nella simulazione e lo inserisce nel primo segmento del suo percorso."""
+         self.vehicles[veh.id] = veh
+         if len(veh.path) > 0:
+             self.segments[veh.path[0]].add_vehicle(veh)
+ 
+     def add_segment(self, seg):
++        """Aggiunge un nuovo segmento stradale al grafo della simulazione."""
+         self.segments.append(seg)
+ 
+     def add_vehicle_generator(self, gen):
++        """Registra un generatore che creerà nuovi veicoli durante l'esecuzione."""
+         self.vehicle_generator.append(gen)
+ 
+     def create_vehicle(self, **kwargs):
++        """Crea un veicolo a partire dai parametri forniti e lo inserisce nella simulazione."""
+         veh = Vehicle(kwargs)
++       
+         self.add_vehicle(veh)
+ 
+ 
++
++    def get_segment_by_id(self, identifier):
++        """Trova un segmento stradale usando il suo identificatore logico."""
++        for seg in self.segments:
++            if seg.identifier == identifier:
++                return seg
++        raise ValueError(f"[Errore] Segmento '{identifier}' non trovato. Assicurati di crearlo prima di collegarlo.")
++
++    def _get_intersection(self, p1, p2, p3, p4):
++        """Calcola il punto di intersezione tra due rette.
++
++        Viene usato per stimare un buon punto di controllo nelle curve di Bezier.
++        """
++        x1, y1 = p1
++        x2, y2 = p2
++        x3, y3 = p3
++        x4, y4 = p4
++
++        # Se le rette sono parallele, usa un punto medio di fallback.
++        denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
++        if denom == 0:
++            
++            return ((x2 + x3) / 2, (y2 + y3) / 2)
++
++        px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom
++        py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom
++        return (px, py)
++
++
++    
+     def create_segment(self, *args, identifier="", max_speed=16.6, category="general", material="asphalt"):
+-        seg = Segment(args, identifier=identifier, max_speed=max_speed, category=category, material=material)
++        """Crea un segmento lineare oppure collega due segmenti esistenti."""
++        if len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], str):
++            # Se riceve due id di segmenti, crea il collegamento usando i punti estremi.
++            start_seg = self.get_segment_by_id(args[0])
++            end_seg = self.get_segment_by_id(args[1])
++            points = (start_seg.points[-1], end_seg.points[0]) 
++        else:
++            # Altrimenti usa direttamente i punti passati in input.
++            points = args
++            
++        seg = Segment(points, identifier=identifier, max_speed=max_speed, category=category, material=material)
+         self.add_segment(seg)
++        return seg
+ 
+-    def create_quadratic_bezier_curve(self, start, control, end, identifier="", max_speed=16.6, category="general", material="asphalt"):
+-        cur = QuadraticCurve(start, control, end, identifier=identifier, max_speed=max_speed, category=category, material=material)
++    def create_quadratic_bezier_curve(self, pt1, pt2, pt3=None, identifier="", max_speed=16.6, category="general", material="asphalt"):
++        """Crea una curva di Bezier quadratica tra due elementi o tre punti espliciti."""
++        if isinstance(pt1, str) and isinstance(pt2, str):
++            # Quando riceve due segmenti, calcola automaticamente il controllo.
++            start_seg = self.get_segment_by_id(pt1)
++            end_seg = self.get_segment_by_id(pt2)
++            
++            actual_start = start_seg.points[-1]
++            actual_end = end_seg.points[0]
++            
++            
++            # Usa i punti vicini ai segmenti per stimare una curva fluida.
++            p1 = start_seg.points[-2] if len(start_seg.points) > 1 else start_seg.points[0]
++            p2 = actual_start
++            p3 = actual_end
++            p4 = end_seg.points[1] if len(end_seg.points) > 1 else end_seg.points[-1]
++            
++            actual_control = self._get_intersection(p1, p2, p3, p4)
++        else:
++            # In alternativa usa i tre punti espliciti forniti dal chiamante.
++            actual_start = pt1
++            actual_control = pt2
++            actual_end = pt3
++            
++        cur = QuadraticCurve(actual_start, actual_control, actual_end, identifier=identifier, max_speed=max_speed, category=category, material=material)
+         self.add_segment(cur)
++        return cur
+ 
+-    def create_cubic_bezier_curve(self, start, control_1, control_2, end, identifier="", max_speed=16.6, category="general", material="asphalt"):
+-        cur = CubicCurve(start, control_1, control_2, end, identifier=identifier, max_speed=max_speed, category=category, material=material)
++    def create_cubic_bezier_curve(self, pt1, pt2, pt3=None, pt4=None, identifier="", max_speed=16.6, category="general", material="asphalt"):
++        """Crea una curva di Bezier cubica e la aggiunge alla rete stradale."""
++        cur = CubicCurve(pt1, pt2, pt3, pt4, identifier=identifier, max_speed=max_speed, category=category, material=material)
+         self.add_segment(cur)
++        return cur
+ 
+     def create_vehicle_generator(self, **kwargs):
++        """Crea e registra un generatore di veicoli."""
+         gen = VehicleGenerator(kwargs)
+         self.add_vehicle_generator(gen)
+ 
+     def run(self, steps):
++        """Esegue la simulazione per un numero dato di passi temporali."""
+         for _ in range(steps):
+             self.update()
+ 
+     def update(self):
+-        # Update vehicles
++        """Avanza di un frame la simulazione aggiornando tutti i sottosistemi."""
++        # Prima aggiorna i semafori, così il resto del ciclo usa lo stato corrente.
+         for segment in self.segments:
+-            # FIX: Ordina l'array a ogni frame basandosi sulla coordinata x. 
+-            # Garantisce che chi sta fisicamente davanti sia sempre al primo posto nella logica.
++            if getattr(segment, 'traffic_light', None):
++                segment.traffic_light.update(self.dt)
++
++        # Aggiorna i veicoli segmento per segmento, in ordine di avanzamento.
++        for idx, segment in enumerate(self.segments):
+             segment.vehicles = deque(sorted(segment.vehicles, key=lambda v_id: self.vehicles[v_id].x, reverse=True))
+             
+             if len(segment.vehicles) != 0:
+-                self.vehicles[segment.vehicles[0]].update(None, self.dt)
++                # Il primo veicolo del segmento è quello che influenza tutti gli altri.
++                first_veh = self.vehicles[segment.vehicles[0]]
++                virtual_lead = None
++                
++                
++                # Se il semaforo è rosso o giallo, crea un leader virtuale sulla stop-line.
++                if getattr(segment, 'traffic_light', None) and segment.traffic_light.state in ["red", "yellow"]:
++                    stop_line = segment.get_length() - 2.0
++                    if first_veh.x < stop_line:
++                        virtual_lead = Vehicle({'x': stop_line, 'v': 0, 'l': 0})
++                
++                
++                # Le intersezioni possono imporre un ulteriore vincolo di precedenza.
++                inter_lead = self.intersection_manager.get_virtual_lead(idx)
++                if inter_lead and (virtual_lead is None or inter_lead.x < virtual_lead.x):
++                    virtual_lead = inter_lead
++
++                
++                # Gestisce anche il caso in cui il veicolo stia per entrare nel segmento successivo.
++                if first_veh.current_road_index + 1 < len(first_veh.path):
++                    next_road_index = first_veh.path[first_veh.current_road_index + 1]
++                    next_segment = self.segments[next_road_index]
++                    
++                    
++                    # Se il segmento successivo è già occupato, crea un leader virtuale proiettato.
++                    if len(next_segment.vehicles) > 0:
++                        last_veh_next = self.vehicles[next_segment.vehicles[-1]]
++                        projected_x = segment.get_length() + last_veh_next.x
++                        
++                        next_seg_lead = Vehicle({
++                            'x': projected_x,
++                            'v': last_veh_next.v,
++                            'l': last_veh_next.l
++                        })
++                        if virtual_lead is None or next_seg_lead.x < virtual_lead.x:
++                            virtual_lead = next_seg_lead
++                    
++                    
++                    
++                    # Gestisce anche i conflitti di merge fra segmenti che convergono sullo stesso ramo.
++                    for other_idx, other_seg in enumerate(self.segments):
++                        if other_idx == idx or len(other_seg.vehicles) == 0:
++                            continue
++                            
++                        other_first = self.vehicles[other_seg.vehicles[0]]
++                        
++                        if other_first.current_road_index + 1 < len(other_first.path) and \
++                           other_first.path[other_first.current_road_index + 1] == next_road_index:
++                            
++                            dist_self = segment.get_length() - first_veh.x
++                            dist_other = other_seg.get_length() - other_first.x
++                            
++                            
++                            # Chi arriva prima al punto di merge ha la precedenza.
++                            if dist_other < dist_self or (dist_other == dist_self and other_idx < idx):
++                                stop_line_merge = segment.get_length() - 2.0
++                                
++                                
++                                if first_veh.x < stop_line_merge:
++                                    merge_yield_lead = Vehicle({'x': stop_line_merge, 'v': 0, 'l': 0})
++                                    if virtual_lead is None or merge_yield_lead.x < virtual_lead.x:
++                                        virtual_lead = merge_yield_lead
++
++                # Aggiorna il veicolo di testa con eventuali vincoli virtuali.
++                first_veh.update(virtual_lead, self.dt)
++                
++            # Aggiorna i veicoli seguenti usando come leader il veicolo davanti nello stesso segmento.
+             for i in range(1, len(segment.vehicles)):
+                 self.vehicles[segment.vehicles[i]].update(self.vehicles[segment.vehicles[i-1]], self.dt)
+-
+-        # Check roads for out of bounds vehicle
++                
++        
++        # Gestisce i passaggi da un segmento al successivo o la rimozione dei veicoli arrivati a destinazione.
+         for segment in self.segments:
+             while len(segment.vehicles) > 0:
+                 vehicle_id = segment.vehicles[0]
+                 vehicle = self.vehicles[vehicle_id]
+                 
+-                # Se il veicolo supera la fine della strada
+                 if vehicle.x >= segment.get_length():
+-                    # Se c'è una strada successiva nel suo percorso
+                     if vehicle.current_road_index + 1 < len(vehicle.path):
+-                        vehicle.current_road_index += 1
+-                        next_road_index = vehicle.path[vehicle.current_road_index]
+-                        self.segments[next_road_index].vehicles.append(vehicle_id)
+-                        vehicle.x = 0
+-                        segment.vehicles.popleft()
++                        # Prova a far entrare il veicolo nel segmento successivo solo se c'è spazio sufficiente.
++                        next_road_index = vehicle.path[vehicle.current_road_index + 1]
++                        next_segment = self.segments[next_road_index]
++                        
++                        
++                        can_enter = (
++                            len(next_segment.vehicles) == 0 
++                            or self.vehicles[next_segment.vehicles[-1]].x > vehicle.s0 + vehicle.l
++                        )
++                        
++                        if can_enter:
++                            vehicle.current_road_index += 1
++                            next_segment.vehicles.append(vehicle_id)
++                            vehicle.x = 0
++                            segment.vehicles.popleft()
++                        else:
++                            # Se non può entrare, si ferma esattamente alla fine del segmento.
++                            vehicle.x = segment.get_length()
++                            vehicle.v = 0
++                            break
+                     else:
+-                        # --- FIX TOPOLOGIA APERTA ---
+-                        # Il veicolo ha terminato il suo viaggio e scompare nel nulla.
+-                        segment.vehicles.popleft()       # Rimuovi dalla strada visiva
+-                        del self.vehicles[vehicle_id]    # Elimina l'oggetto dalla RAM
++                        # Se il percorso è finito, elimina il veicolo dalla simulazione.
++                        segment.vehicles.popleft()
++                        del self.vehicles[vehicle_id]
+                 else:
+                     break
+ 
+-        # Update vehicle generators
++        # Aggiorna i generatori che possono introdurre nuovi veicoli.
+         for gen in self.vehicle_generator:
+             gen.update(self)
++            
++        # Aggiorna i sistemi ausiliari nell'ordine in cui dipendono dal tempo simulato.
++        if hasattr(self, 'event_manager'): self.event_manager.update()
++        if hasattr(self, 'intersection_manager'): self.intersection_manager.update()
++        if hasattr(self, 'communication_manager'): self.communication_manager.update()
++        
++        # Avanza il tempo globale di simulazione.
++        self.t += self.dt
++        self.frame_count += 1
+ 
+-        # Update managers
+-        if hasattr(self, 'event_manager'):
+-            self.event_manager.update()
+-        if hasattr(self, 'communication_manager'):
+-            self.communication_manager.update()
++    
+ 
+-        # Increment time
+-        self.t += self.dt
+-        self.frame_count += 1
+\ No newline at end of file
++    def create_intersection(self, arms, mode="fcfs"):
++        """Crea una nuova intersezione gestita da IntersectionManager."""
++        return self.intersection_manager.add_intersection(arms, mode=mode)
+\ No newline at end of file
+diff --git a/src/trafficSimulator/core/traffic_light.py b/src/trafficSimulator/core/traffic_light.py
+new file mode 100644
+index 0000000..94d8cd1
+--- /dev/null
++++ b/src/trafficSimulator/core/traffic_light.py
+@@ -0,0 +1,23 @@
++class TrafficLight:
++    def __init__(self, phases):
++        # Sequenza delle fasi del semaforo, ciascuna come (stato, durata).
++        self.phases = phases
++        # Indice della fase attiva corrente.
++        self.current_phase_index = 0
++        # Tempo trascorso nella fase corrente.
++        self.time_in_phase = 0.0
++        # Stato iniziale del semaforo.
++        self.state = self.phases[self.current_phase_index][0]
++
++    def update(self, dt):
++        """Avanza il tempo del semaforo e cambia fase quando la durata è terminata."""
++        # Accumula il tempo trascorso nella fase corrente.
++        self.time_in_phase += dt
++        # Durata prevista per la fase attualmente attiva.
++        current_phase_duration = self.phases[self.current_phase_index][1]
++        
++        # Quando la durata è finita, passa alla fase successiva in ciclo.
++        if self.time_in_phase >= current_phase_duration:
++            self.time_in_phase -= current_phase_duration
++            self.current_phase_index = (self.current_phase_index + 1) % len(self.phases)
++            self.state = self.phases[self.current_phase_index][0]
+\ No newline at end of file
+diff --git a/src/trafficSimulator/core/vehicle.py b/src/trafficSimulator/core/vehicle.py
+index b36e5c0..3d0859c 100755
+--- a/src/trafficSimulator/core/vehicle.py
++++ b/src/trafficSimulator/core/vehicle.py
+@@ -28,11 +28,11 @@ class Vehicle:
+         self.a = 0
+         self.stopped = False
+         
+-        # --- FASE 2: Proprietà Descrittive ---
++
+         self.vehicle_class = "car" # 'car', 'truck', 'bus', 'electric'
+         self.engine_type = "combustion" # 'combustion', 'electric', 'hybrid'
+         
+-        # --- FASE 2: Dati OBU (On-Board Unit) ---
++
+         self.obu_data = {
+             "co2_emissions": 0.0,
+             "engine_rpm": 800,
+@@ -42,6 +42,7 @@ class Vehicle:
+             "rain_sensor": False
+         }
+ 
++    # funzione per inizializzare le proprietà derivate dalla configurazione
+     def init_properties(self):
+         self.sqrt_ab = 2*np.sqrt(self.a_max*self.b_max)
+         self._v_max = self.v_max
+@@ -93,14 +94,14 @@ class Vehicle:
+         """Calcola e aggiorna i valori simulati dell'OBU basandosi sulla fisica attuale"""
+         speed_factor = max(0, min(1, self.v / self.v_max)) # 0.0 -> 1.0
+         
+-        # 1. RPM del Motore
++        # RPM del Motore
+         if self.engine_type == "combustion":
+             base_rpm = 800
+             # Aumenta i giri con la velocità e li fa schizzare con l'accelerazione
+             calculated_rpm = base_rpm + int(speed_factor * 2500) + int(self.a * 200)
+             self.obu_data["engine_rpm"] = max(base_rpm, calculated_rpm)
+             
+-            # 2. Emissioni di CO2 (approssimazione g/s)
++            # Emissioni di CO2 (approssimazione g/s)
+             idle_emission = 0.5
+             accel_penalty = max(0, self.a) * 2.5 # Emette molto in accelerazione
+             speed_penalty = speed_factor * 1.5   # Consuma di più ad alte velocità
+diff --git a/src/trafficSimulator/core/vehicle_generator.py b/src/trafficSimulator/core/vehicle_generator.py
+index 076334d..dc16db2 100755
+--- a/src/trafficSimulator/core/vehicle_generator.py
++++ b/src/trafficSimulator/core/vehicle_generator.py
+@@ -3,47 +3,54 @@ from numpy.random import randint
+ 
+ class VehicleGenerator:
+     def __init__(self, config={}):
+-        # Set default configurations
++        # Imposta i valori di default e poi applica eventuali sovrascritture dal config.
+         self.set_default_config()
+ 
+-        # Update configurations
++        # Copia nella classe gli attributi presenti nella configurazione ricevuta.
+         for attr, val in config.items():
+             setattr(self, attr, val)
+ 
+-        # Calculate properties
++        # Prepara il primo veicolo da inserire nella simulazione.
+         self.init_properties()
+ 
+     def set_default_config(self):
+-        """Set default configuration"""
+-        self.vehicle_rate = 10
++        """Imposta la configurazione base del generatore."""
++        # Numero medio di veicoli generati al minuto.
++        self.vehicle_rate = 40
++        # Lista di possibili veicoli con pesi di estrazione.
+         self.vehicles = [
+             (1, {})
+         ]
++        # Tempo dell'ultimo veicolo inserito.
+         self.last_added_time = 0
+ 
+     def init_properties(self):
++        # Genera in anticipo il prossimo veicolo da provare a inserire.
+         self.upcoming_vehicle = self.generate_vehicle()
+ 
+     def generate_vehicle(self):
+-        """Returns a random vehicle from self.vehicles with random proportions"""
++        """Estrae casualmente un veicolo tra quelli configurati, rispettando i pesi."""
++        # Somma dei pesi usati per il sorteggio.
+         total = sum(pair[0] for pair in self.vehicles)
++        # Estrae un valore casuale tra 1 e il totale dei pesi.
+         r = randint(1, total+1)
+         for (weight, config) in self.vehicles:
++            # Scala il valore casuale finché non ricade nel peso del veicolo selezionato.
+             r -= weight
+             if r <= 0:
+                 return Vehicle(config)
+ 
+     def update(self, simulation):
+-        """Add vehicles"""
++        """Prova ad aggiungere un nuovo veicolo quando è trascorso abbastanza tempo."""
++        # Converte il rate configurato in un intervallo temporale tra due inserimenti.
+         if simulation.t - self.last_added_time >= 60 / self.vehicle_rate:
+-            print('adding vehicle')
+-            # If time elasped after last added vehicle is
+-            # greater than vehicle_period; generate a vehicle
++            # Verifica che il segmento di ingresso sia libero o abbia spazio sufficiente.
+             segment = simulation.segments[self.upcoming_vehicle.path[0]]      
+             if len(segment.vehicles) == 0\
+                or simulation.vehicles[segment.vehicles[-1]].x > self.upcoming_vehicle.s0 + self.upcoming_vehicle.l:
+-                # If there is space for the generated vehicle; add it
++                # Inserisce il veicolo nella simulazione e aggiorna il timestamp.
+                 simulation.add_vehicle(self.upcoming_vehicle)
+-                # Reset last_added_time and upcoming_vehicle
++                
+                 self.last_added_time = simulation.t
++            # Prepara comunque il prossimo veicolo da tentare di inserire al tick successivo.
+             self.upcoming_vehicle = self.generate_vehicle()
+diff --git a/src/trafficSimulator/visualizer/__pycache__/window.cpython-314.pyc b/src/trafficSimulator/visualizer/__pycache__/window.cpython-314.pyc
+index e28c963..5a37104 100644
+Binary files a/src/trafficSimulator/visualizer/__pycache__/window.cpython-314.pyc and b/src/trafficSimulator/visualizer/__pycache__/window.cpython-314.pyc differ
+diff --git a/src/trafficSimulator/visualizer/window.py b/src/trafficSimulator/visualizer/window.py
+index b0086bf..5c25c65 100755
+--- a/src/trafficSimulator/visualizer/window.py
++++ b/src/trafficSimulator/visualizer/window.py
+@@ -1,18 +1,20 @@
+ import dearpygui.dearpygui as dpg
+-
++import math
+ 
+ class Window:
++    """Gestisce la finestra grafica, i controlli e il rendering della simulazione."""
++
+     def __init__(self, simulation):
+         self.simulation = simulation
+-        self.config = simulation.config  # Recuperiamo la config dalla simulazione
++        self.config = simulation.config  
++        
+         
+-        # Lettura parametri GUI da file config
+         self.window_width = self.config.get("gui.width", 1280)
+         self.window_height = self.config.get("gui.height", 720)
+         self.window_title = self.config.get("gui.window_title", "TrafficSimulator")
+         self.bg_color = tuple(self.config.get("gui.bg_color", [250, 250, 250]))
+ 
+-        self.zoom = 7
++        self.zoom = 1
+         self.offset = (0, 0)
+         self.speed = 1
+ 
+@@ -29,28 +31,31 @@ class Window:
+         self.resize_windows()
+ 
+     def setup(self):
++        """Crea il contesto Dear PyGui e prepara il viewport principale."""
+         dpg.create_context()
+-        # Usa le grandezze prese dal JSON
++        
+         dpg.create_viewport(title=self.window_title, width=self.window_width, height=self.window_height)
+         dpg.setup_dearpygui()
+ 
+     def setup_themes(self):
++        """Definisce i temi grafici usati dall'interfaccia e dai pulsanti."""
+         with dpg.theme() as global_theme:
+ 
+             with dpg.theme_component(dpg.mvAll):
++                # Stile comune per tutti gli elementi GUI.
+                 dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 5, category=dpg.mvThemeCat_Core)
+                 dpg.add_theme_style(dpg.mvStyleVar_FrameBorderSize, 1, category=dpg.mvThemeCat_Core)
+                 dpg.add_theme_style(dpg.mvStyleVar_WindowBorderSize, 0, category=dpg.mvThemeCat_Core)
+-                # dpg.add_theme_style(dpg.mvStyleVar_ItemSpacing, (8, 6), category=dpg.mvThemeCat_Core)
++                
+                 dpg.add_theme_color(dpg.mvThemeCol_Button, (90, 90, 95))
+                 dpg.add_theme_color(dpg.mvThemeCol_Header, (0, 91, 140))
+             with dpg.theme_component(dpg.mvInputInt):
+                 dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (90, 90, 95), category=dpg.mvThemeCat_Core)
+-            #     dpg.add_theme_style(dpg.mvStyleVar_FrameRounding, 5, category=dpg.mvThemeCat_Core)
++            
+ 
+         dpg.bind_theme(global_theme)
+ 
+-        # dpg.show_style_editor()
++        
+ 
+         with dpg.theme(tag="RunButtonTheme"):
+             with dpg.theme_component(dpg.mvButton):
+@@ -65,6 +70,7 @@ class Window:
+                 dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (120, 2, 10))
+ 
+     def create_windows(self):
++        """Costruisce la finestra di simulazione e il pannello comandi."""
+         dpg.add_window(
+             tag="MainWindow",
+             label="Simulation",
+@@ -120,9 +126,11 @@ class Window:
+                     dpg.add_slider_float(tag="OffsetYSlider", label="Y Offset", min_value=-100, max_value=100, default_value=self.offset[1], callback=self.set_offset_zoom)
+ 
+     def resize_windows(self):
++        """Adatta le dimensioni delle finestre alla viewport corrente."""
+         width = dpg.get_viewport_width()
+         height = dpg.get_viewport_height()
+ 
++        # Il pannello controlli resta a sinistra, la scena occupa il resto.
+         dpg.set_item_width("ControlsWindow", 300)
+         dpg.set_item_height("ControlsWindow", height-38)
+         dpg.set_item_pos("ControlsWindow", (0, 0))
+@@ -132,6 +140,7 @@ class Window:
+         dpg.set_item_pos("MainWindow", (300, 0))
+ 
+     def create_handlers(self):
++        """Registra gli handler per mouse e ridimensionamento del viewport."""
+         with dpg.handler_registry():
+             dpg.add_mouse_down_handler(callback=self.mouse_down)
+             dpg.add_mouse_drag_handler(callback=self.mouse_drag)
+@@ -140,7 +149,7 @@ class Window:
+         dpg.set_viewport_resize_callback(self.resize_windows)
+ 
+     def update_panels(self):
+-        # Update status text
++        """Aggiorna i testi di stato mostrati nel pannello laterale."""
+         if self.is_running:
+             dpg.set_value("StatusText", "Running")
+             dpg.configure_item("StatusText", color=(0, 255, 0))
+@@ -148,31 +157,36 @@ class Window:
+             dpg.set_value("StatusText", "Stopped")
+             dpg.configure_item("StatusText", color=(255, 0, 0))
+         
+-        # Update time and frame text
++        
+         dpg.set_value("TimeStatus", f"{self.simulation.t:.2f}s")
+         dpg.set_value("FrameStatus", self.simulation.frame_count)
+ 
+     def mouse_down(self):
++        """Avvia il trascinamento della camera quando si clicca sulla scena."""
+         if not self.is_dragging:
+             if dpg.is_item_hovered("MainWindow"):
+                 self.is_dragging = True
+                 self.old_offset = self.offset
+         
+     def mouse_drag(self, sender, app_data):
++        """Sposta la camera mentre il mouse viene trascinato."""
+         if self.is_dragging:
+             self.offset = (
+                 self.old_offset[0] + app_data[1]/self.zoom,
+-                self.old_offset[1] + app_data[2]/self.zoom
++                self.old_offset[1] - app_data[2]/self.zoom 
+             )
+ 
+     def mouse_release(self):
++        """Ferma il trascinamento della camera."""
+         self.is_dragging = False
+ 
+     def mouse_wheel(self, sender, app_data):
++        """Imposta uno zoom graduale quando la rotellina e sopra la scena."""
+         if dpg.is_item_hovered("MainWindow"):
+             self.zoom_speed = 1 + 0.01*app_data
+ 
+     def update_inertial_zoom(self, clip=0.005):
++        """Applica uno zoom inerziale che si avvicina progressivamente a 1."""
+         if self.zoom_speed != 1:
+             self.zoom *= self.zoom_speed
+             self.zoom_speed = 1 + (self.zoom_speed - 1) / 1.05
+@@ -180,40 +194,48 @@ class Window:
+             self.zoom_speed = 1
+ 
+     def update_offset_zoom_slider(self):
++        """Allinea i widget della camera ai valori correnti della vista."""
+         dpg.set_value("ZoomSlider", self.zoom)
+         dpg.set_value("OffsetXSlider", self.offset[0])
+         dpg.set_value("OffsetYSlider", self.offset[1])
+ 
+     def set_offset_zoom(self):
++        """Legge i valori dei slider e aggiorna zoom e offset."""
+         self.zoom = dpg.get_value("ZoomSlider")
+         self.offset = (dpg.get_value("OffsetXSlider"), dpg.get_value("OffsetYSlider"))
+ 
+     def set_speed(self):
++        """Legge lo slider e aggiorna la velocita di simulazione."""
+         self.speed = dpg.get_value("SpeedInput")
+ 
+     def to_screen(self, x, y):
++        """Converte coordinate mondo in coordinate schermo."""
+         return (
+             self.canvas_width/2 + (x + self.offset[0] ) * self.zoom,
+-            self.canvas_height/2 + (y + self.offset[1]) * self.zoom
++            self.canvas_height/2 - (y + self.offset[1]) * self.zoom 
+         )
+ 
+     def to_world(self, x, y):
++        """Converte coordinate schermo in coordinate mondo."""
+         return (
+             (x - self.canvas_width/2) / self.zoom - self.offset[0],
+-            (y - self.canvas_height/2) / self.zoom - self.offset[1] 
++            -(y - self.canvas_height/2) / self.zoom - self.offset[1] 
+         )
+     
+     @property
+     def canvas_width(self):
++        """Larghezza disponibile per il canvas della simulazione."""
+         return dpg.get_item_width("MainWindow")
+ 
+     @property
+     def canvas_height(self):
++        """Altezza disponibile per il canvas della simulazione."""
+         return dpg.get_item_height("MainWindow")
+ 
+     def draw_bg(self, color=None):
++        """Disegna lo sfondo della scena."""
+         if color is None:
+-            color = self.bg_color # Usa il colore configurato se non passato
++            color = self.bg_color 
+         dpg.draw_rectangle(
+             (-10, -10),
+             (self.canvas_width+10, self.canvas_height+10), 
+@@ -223,6 +245,7 @@ class Window:
+         )
+ 
+     def draw_axes(self, opacity=80):
++        """Disegna gli assi cartesiani come riferimento visivo."""
+         x_center, y_center = self.to_screen(0, 0)
+         
+         dpg.draw_line(
+@@ -241,18 +264,20 @@ class Window:
+         )
+ 
+     def draw_grid(self, unit=10, opacity=50):
++        """Disegna una griglia di riferimento con passo configurabile."""
+         x_start, y_start = self.to_world(0, 0)
+         x_end, y_end = self.to_world(self.canvas_width, self.canvas_height)
+-
+-        n_x = int(x_start / unit)
+-        n_y = int(y_start / unit)
+-        m_x = int(x_end / unit)+1
+-        m_y = int(y_end / unit)+1
++        
++        
++        n_x = int(min(x_start, x_end) / unit)
++        m_x = int(max(x_start, x_end) / unit) + 1
++        n_y = int(min(y_start, y_end) / unit)
++        m_y = int(max(y_start, y_end) / unit) + 1
+ 
+         for i in range(n_x, m_x):
+             dpg.draw_line(
+-                self.to_screen(unit*i, y_start - 10/self.zoom),
+-                self.to_screen(unit*i, y_end + 10/self.zoom),
++                self.to_screen(unit*i, min(y_start, y_end) - 10/self.zoom),
++                self.to_screen(unit*i, max(y_start, y_end) + 10/self.zoom),
+                 thickness=1,
+                 color=(0, 0, 0, opacity),
+                 parent="OverlayCanvas"
+@@ -260,29 +285,70 @@ class Window:
+ 
+         for i in range(n_y, m_y):
+             dpg.draw_line(
+-                self.to_screen(x_start - 10/self.zoom, unit*i),
+-                self.to_screen(x_end + 10/self.zoom, unit*i),
++                self.to_screen(min(x_start, x_end) - 10/self.zoom, unit*i),
++                self.to_screen(max(x_start, x_end) + 10/self.zoom, unit*i),
+                 thickness=1,
+                 color=(0, 0, 0, opacity),
+                 parent="OverlayCanvas"
+             )
+ 
+     def draw_segments(self):
++        """Disegna i segmenti stradali e le luci semaforiche associate."""
+         for segment in self.simulation.segments:
+-            # --- FASE 2: Stile differenziato per materiale e categoria ---
+-            color = (180, 180, 220) # Asfalto default
++            # Colore base del tratto stradale.
++            color = (180, 180, 220) 
+             thickness = 3.5 * self.zoom
+-            
++                         
+             if hasattr(segment, 'material'):
+                 if segment.material == "gravel" or segment.category == "dirt":
+-                    color = (160, 140, 100) # Colore terra/sterrato
+-            
++                    color = (160, 140, 100) 
++                elif segment.category == "bus_lane":
++                    color = (200, 150, 150) 
++                elif segment.category == "work_zone":
++                    color = (244, 164, 96) 
++                         
+             dpg.draw_polyline(segment.points, color=color, thickness=thickness, parent="Canvas")
++                         
++            
++            MIN_LENGTH_FOR_ARROW = 15.0  
+             
+-            # --- FASE 2: Frecce direzionali ---
+-            if len(segment.points) >= 2:
+-                # Disegna una freccia vicino alla fine del segmento stradale
+-                dpg.draw_arrow(segment.points[-1], segment.points[-2], thickness=0, size=3*self.zoom, color=(0, 0, 0, 80), parent="Canvas")
++            if segment.get_length() > MIN_LENGTH_FOR_ARROW:
++                
++                # La freccia indica il verso di percorrenza del segmento.
++                center_pos = segment.get_point(0.5)
++                heading = segment.get_heading(0.5)
++                                 
++                
++                arrow_len = 2.0
++                dx = math.cos(heading) * arrow_len
++                dy = math.sin(heading) * arrow_len
++                                 
++                p1 = (center_pos[0] + dx, center_pos[1] + dy) 
++                p2 = (center_pos[0] - dx, center_pos[1] - dy) 
++                                 
++                dpg.draw_arrow(p1, p2, thickness=0, size=3.0, color=(0, 0, 0, 80), parent="Canvas")
++
++        
++        for segment in self.simulation.segments:
++            if getattr(segment, 'traffic_light', None):
++                # Disegna il semaforo sulla fine del segmento.
++                pos = segment.points[-1]
++                state = segment.traffic_light.state
++                
++                if state == "green":
++                    light_color = (0, 255, 0)
++                elif state == "yellow":
++                    light_color = (255, 200, 0)
++                else:
++                    light_color = (255, 0, 0)
++                
++                dpg.draw_circle(
++                    center=pos, 
++                    radius=4.5 * self.zoom, 
++                    color=(50, 50, 50), 
++                    fill=light_color, 
++                    parent="Canvas"
++                )
+ 
+     def draw_vehicles(self):
+         for segment in self.simulation.segments:
+@@ -293,19 +359,25 @@ class Window:
+                 heading = segment.get_heading(progress)
+                 node = dpg.add_draw_node(parent="Canvas")
+                 
+-                # --- FASE 2: Stile differenziato per classe veicolare ---
+-                veh_color = (0, 0, 255) # Auto = blu di default
++                
++                veh_color = (0, 0, 255) 
+                 veh_thickness = 1.76 * self.zoom
+                 
+                 if hasattr(vehicle, 'vehicle_class'):
+                     if vehicle.vehicle_class == "truck":
+-                        veh_color = (139, 69, 19)   # Camion = Marrone
++                        veh_color = (139, 69, 19)   
+                         veh_thickness = 2.5 * self.zoom
+                     elif vehicle.vehicle_class == "bus":
+-                        veh_color = (255, 140, 0)   # Bus = Arancione
++                        veh_color = (255, 140, 0)   
+                         veh_thickness = 2.5 * self.zoom
+                     elif vehicle.vehicle_class == "electric":
+-                        veh_color = (0, 210, 0)     # Elettrico = Verde brillante
++                        veh_color = (0, 210, 0)     
++                    elif vehicle.vehicle_class == "obstacle":
++                        veh_color = (255, 0, 0)      
++                        veh_thickness = 3.5 * self.zoom
++                    elif vehicle.vehicle_class == "animal":
++                        veh_color = (255, 255, 0)    
++                        veh_thickness = 2.0 * self.zoom    
+ 
+                 dpg.draw_line(
+                     (0, 0),
+@@ -321,19 +393,20 @@ class Window:
+     def apply_transformation(self):
+         screen_center = dpg.create_translation_matrix([self.canvas_width/2, self.canvas_height/2, -0.01])
+         translate = dpg.create_translation_matrix(self.offset)
+-        scale = dpg.create_scale_matrix([self.zoom, self.zoom])
++        
++        scale = dpg.create_scale_matrix([self.zoom, -self.zoom]) 
+         dpg.apply_transform("Canvas", screen_center*scale*translate)
+ 
+     def render_loop(self):
+-        # Events
++        
+         self.update_inertial_zoom()
+         self.update_offset_zoom_slider()
+ 
+-        # Remove old drawings
++        
+         dpg.delete_item("OverlayCanvas", children_only=True)
+         dpg.delete_item("Canvas", children_only=True)
+         
+-        # New drawings
++        
+         self.draw_bg()
+         self.draw_axes()
+         self.draw_grid(unit=10)
+@@ -341,17 +414,18 @@ class Window:
+         self.draw_segments()
+         self.draw_vehicles()
+ 
+-        # Apply transformations
++        
+         self.apply_transformation()
+ 
+-        # Update panels
++        
+         self.update_panels()
+ 
+-        # Update simulation
++        
+         if self.is_running:
+             self.simulation.run(self.speed)
+ 
+     def show(self):
++        """Mostra la viewport e avvia il ciclo principale dell'interfaccia."""
+         dpg.show_viewport()
+         while dpg.is_dearpygui_running():
+             self.render_loop()
+@@ -359,82 +433,98 @@ class Window:
+         dpg.destroy_context()
+ 
+     def run(self):
++        """Avvia la simulazione e aggiorna il pulsante Run/Stop."""
+         self.is_running = True
+         dpg.set_item_label("RunStopButton", "Stop")
+         dpg.bind_item_theme("RunStopButton", "StopButtonTheme")
+ 
+     def stop(self):
++        """Ferma la simulazione e ripristina il pulsante Run/Stop."""
+         self.is_running = False
+         dpg.set_item_label("RunStopButton", "Run")
+         dpg.bind_item_theme("RunStopButton", "RunButtonTheme")
+ 
+     def toggle(self):
++        """Alterna lo stato della simulazione tra avvio e pausa."""
+         if self.is_running: self.stop()
+         else: self.run()
+ 
+     def draw_environment(self):
+-        """Renderizza elementi decorativi o infrastrutturali (edifici, alberi, nodi RSU)"""
++        """Renderizza elementi decorativi o infrastrutturali sulla scena."""
+         for item in self.simulation.environment:
+             item_type = item.get("type")
+             x = item.get("x", 0)
+             y = item.get("y", 0)
+             
+             if item_type == "tree":
+-                # Poiché il raggio è uno scalare su schermo, va moltiplicato per lo zoom
++                # Alberi come cerchi verdi.
+                 radius = item.get("radius", 3) * self.zoom
+                 dpg.draw_circle(center=(x, y), radius=radius, color=(34, 139, 34), fill=(34, 139, 34, 200), parent="Canvas")
+                 
+             elif item_type == "building":
+-                # pmin e pmax sono coordinate reali, verranno scalate dalla matrice di trasformazione del Canvas
++                # Edifici come rettangoli semplici.
+                 w = item.get("width", 10)
+                 h = item.get("height", 10)
+-                dpg.draw_rectangle(pmin=(x, y), pmax=(x+w, y+h), color=(100, 100, 100), fill=(160, 160, 160, 255), parent="Canvas")
++                dpg.draw_rectangle(pmin=(x, y), pmax=(x+w, y+h), color=(100, 100, 100), fill=(220, 220, 220), parent="Canvas")
+                 
+             elif item_type == "rsu":
+-                # Road-Side Unit / Antenna
++                # Le RSU mostrano area di copertura e antenna centrale.
+                 coverage = item.get("coverage", 50) * self.zoom
+                 antenna_radius = 1.5 * self.zoom
+-                # Disegna l'area di copertura wireless (cerchio semi-trasparente)
++                
+                 dpg.draw_circle(center=(x, y), radius=coverage, color=(0, 200, 255, 100), fill=(0, 200, 255, 15), parent="Canvas")
+-                # Disegna l'antenna
++                
+                 dpg.draw_circle(center=(x, y), radius=antenna_radius, color=(0, 0, 0), fill=(0, 200, 255), parent="Canvas")
+-
+-    # --- FASE 3: Strade colorate e frecce ---
+-    def draw_segments(self):
+-        for segment in self.simulation.segments:
+-            color = (180, 180, 220) # Asfalto default
+-            thickness = 3.5 * self.zoom
+-            
+-            if hasattr(segment, 'material'):
+-                if segment.material == "gravel" or segment.category == "dirt":
+-                    color = (160, 140, 100) # Sterrato
+-                elif segment.category == "bus_lane":
+-                    color = (200, 150, 150) # Corsia preferenziale
+             
+-            dpg.draw_polyline(segment.points, color=color, thickness=thickness, parent="Canvas")
+-            
+-            # Disegna una freccia direzionale verso la fine del segmento
+-            if len(segment.points) >= 2:
+-                dpg.draw_arrow(segment.points[-1], segment.points[-2], thickness=0, size=3*self.zoom, color=(0, 0, 0, 80), parent="Canvas")
++            elif item_type == "parking":
++                # Parcheggio con stalli disegnati a griglia.
++                w = item.get("width", 80)
++                h = item.get("height", 30)
++
++                target_spot_w = 5
++                target_spot_h = h/3
++
++                cols = max(1, int(w // target_spot_w))
++                spot_w = w / cols
++
++                dpg.draw_rectangle(
++                    pmin=(x, y),
++                    pmax=(x + w, y + h),
++                    color=(112, 128, 144),
++                    fill=(112, 128, 144),
++                    parent="Canvas"
++                )
++
++                for i in range(cols + 1):
++                    line_x = x + i * spot_w
++                    dpg.draw_line((line_x, y), (line_x, y + h), color=(255, 255, 255, 200), thickness=2, parent="Canvas")
+ 
+-    # --- FASE 3: Veicoli differenziati ---
++                dpg.draw_line((x, y + h / 2), (x + w, y + h / 2), color=(255, 255, 255, 220), thickness=2, parent="Canvas")
++            
++            elif item_type == "other":
++                # Placeholder generico per oggetti non classificati.
++                w = item.get("width", 80)
++                h = item.get("height", 30)
++                dpg.draw_rectangle(pmin=(x, y), pmax=(x+w, y+h), color=(189, 183, 107), fill=(189, 183, 107), parent="Canvas")
++                
+     
+-    # --- FASE 3/4/5: Veicoli differenziati ---
+     def draw_vehicles(self):
++        """Disegna tutti i veicoli presenti sulla rete."""
+         for segment in self.simulation.segments:
+             for vehicle_id in segment.vehicles:
+                 vehicle = self.simulation.vehicles[vehicle_id]
+                 
+-                # --- FIX: Clamp del valore tra 0.0 e 1.0 per evitare il ValueError di SciPy ---
++                
++                # Normalizza la posizione sul segmento per evitare valori fuori range.
+                 progress = vehicle.x / segment.get_length()
+                 progress = max(0.0, min(1.0, progress)) 
+-                # -----------------------------------------------------------------------------
++                
+                 
+                 position = segment.get_point(progress)
+                 heading = segment.get_heading(progress)
+                 node = dpg.add_draw_node(parent="Canvas")
+                 
+-                veh_color = (0, 0, 255) # Auto = blu
++                veh_color = (0, 0, 255) 
+                 veh_thickness = 1.76 * self.zoom
+                 
+                 if hasattr(vehicle, 'vehicle_class'):
+@@ -453,6 +543,7 @@ class Window:
+                         veh_color = (220, 20, 60)   
+                         veh_thickness = 4.0 * self.zoom
+ 
++                # Il veicolo viene rappresentato come una linea orientata lungo la corsia.
+                 dpg.draw_line(
+                     (0, 0),
+                     (vehicle.l, 0),
+@@ -464,33 +555,34 @@ class Window:
+                 rotate = dpg.create_rotation_matrix(heading, [0, 0, 1])
+                 dpg.apply_transform(node, translate*rotate)
+ 
+-    # --- FASE 3: Integrazione nel render loop ---
++    
+     def render_loop(self):
+-        # Events
++        """Esegue un singolo frame di rendering e aggiorna la simulazione."""
+         self.update_inertial_zoom()
+         self.update_offset_zoom_slider()
+         
+-        # Remove old drawings
++        
+         dpg.delete_item("OverlayCanvas", children_only=True)
+         dpg.delete_item("Canvas", children_only=True)
+                  
+-        # New drawings
++        
++        # Disegna prima sfondo e overlay, poi contenuti dinamici.
+         self.draw_bg()
+         self.draw_axes()
+         self.draw_grid(unit=10)
+         self.draw_grid(unit=50)
+         
+-        # Aggiunta dell'ambiente sotto alle strade
++        
+         self.draw_environment() 
+         self.draw_segments()
+         self.draw_vehicles()
+         
+-        # Apply transformations
++        
+         self.apply_transformation()
+         
+-        # Update panels
++        
+         self.update_panels()
+         
+-        # Update simulation
++        
+         if self.is_running:
+             self.simulation.run(self.speed)
+\ No newline at end of file
+diff --git a/tests/__pycache__/test_imports.cpython-314.pyc b/tests/__pycache__/test_imports.cpython-314.pyc
+deleted file mode 100644
+index c2e795c..0000000
+Binary files a/tests/__pycache__/test_imports.cpython-314.pyc and /dev/null differ
+diff --git a/tests/test_imports.py b/tests/test_imports.py
+deleted file mode 100644
+index d5a7d95..0000000
+--- a/tests/test_imports.py
++++ /dev/null
+@@ -1,21 +0,0 @@
+-import importlib.util
+-import unittest
+-from pathlib import Path
+-
+-
+-class ImportPathTests(unittest.TestCase):
+-    def test_import_example_module_with_project_src_path(self) -> None:
+-        repo_root = Path(__file__).resolve().parents[1]
+-        example_path = repo_root / "examples" / "test_fase1.py"
+-        spec = importlib.util.spec_from_file_location("test_fase1", example_path)
+-        self.assertIsNotNone(spec)
+-        self.assertIsNotNone(spec.loader)
+-
+-        module = importlib.util.module_from_spec(spec)
+-        spec.loader.exec_module(module)
+-
+-        self.assertTrue(callable(getattr(module, "main", None)))
+-
+-
+-if __name__ == "__main__":
+-    unittest.main()

@@ -1,8 +1,9 @@
 
 from .vehicle import Vehicle
 
+#Questo file contiene le classi per gestire le intersezioni e la logica di precedenza tra i veicoli.
 
-class IntersectionArm:
+class IntersectionArm: #rappresenta un braccio di un'intersezione, ovvero un segmento stradale che confluisce nell'incrocio.
     def __init__(self, segment_index, stop_distance=None, clearance_distance=15.0):
         # Segmento che confluisce nell'intersezione.
         self.segment_index = segment_index
@@ -11,7 +12,7 @@ class IntersectionArm:
         # Distanza minima oltre la quale l'incrocio si considera liberato.
         self.clearance_distance = clearance_distance  
 
-    def get_stop_distance(self, segment):
+    def get_stop_distance(self, segment): # Restituisce la distanza alla quale il veicolo deve fermarsi prima di entrare nell'intersezione.
         # Se è stata configurata una stop-line esplicita, usa quella.
         if self.stop_distance is not None:
             return self.stop_distance
@@ -19,7 +20,7 @@ class IntersectionArm:
         return max(0.0, segment.get_length() - 2.0)
 
 
-class Intersection:
+class Intersection: # Rappresenta un'intersezione con più bracci e gestisce la logica di precedenza tra i veicoli.
     def __init__(self, arms, mode="fcfs"):
         # Mappa segmento -> braccio dell'intersezione.
         self.arms = {a.segment_index: a for a in arms}
@@ -33,7 +34,7 @@ class Intersection:
         self.arrival_times = {}  
 
 
-class IntersectionManager:
+class IntersectionManager: # Gestisce tutte le intersezioni della simulazione e coordina l'assegnazione della precedenza ai veicoli.
     def __init__(self, simulation):
         # Accesso alla simulazione per leggere segmenti, veicoli e tempo.
         self.simulation = simulation
@@ -50,9 +51,9 @@ class IntersectionManager:
     def update(self):
         # Ogni intersezione viene aggiornata in tre fasi: rilascio, tracking, assegnazione.
         for inter in self.intersections:
-            self._release_if_cleared(inter)
-            self._track_arrivals(inter)
-            self._grant_priority(inter)
+            self._release_if_cleared(inter) #controlla se il veicolo che occupa l'intersezione l'ha superata e libera l'intersezione se necessario.
+            self._track_arrivals(inter) #aggiorna i tempi di arrivo dei veicoli alla stop-line per determinare chi ha la precedenza.
+            self._grant_priority(inter) #assegna la precedenza al veicolo arrivato prima tra quelli candidati, se l'intersezione è libera.
 
     def _release_if_cleared(self, inter):
         """Libera l'intersezione quando il veicolo che l'occupa l'ha oltrepassata."""

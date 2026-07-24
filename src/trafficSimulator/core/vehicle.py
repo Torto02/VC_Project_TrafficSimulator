@@ -59,8 +59,10 @@ class Vehicle:
             self.engine_type = "electric"
             self.a_max = 2.0    # Accelerazione bruciante tipica degli EV
 
+    # Funzione per aggiornare lo stato del veicolo in base al veicolo che lo precede e al delta time (ovvero il tempo trascorso dall'ultimo aggiornamento, 
+    # usato per calcolare la nuova posizione e velocità)
     def update(self, lead, dt):
-        # Update position and velocity
+        # Aggiorna la posizione e la velocità
         if self.v + self.a*dt < 0:
             self.x -= 1/2*self.v*self.v/self.a
             self.v = 0
@@ -68,28 +70,30 @@ class Vehicle:
             self.v += self.a*dt
             self.x += self.v*dt + self.a*dt*dt/2
                  
-        # Update acceleration
+        # Aggiorna l'accelazione
         alpha = 0
         if lead:
             delta_x = lead.x - self.x - lead.l
             delta_v = self.v - lead.v
             
-            # FIX: Previene il collasso matematico. Se i veicoli si toccano
-            # o si sovrappongono, imponiamo una decelerazione istantanea.
+            # Se la distanza dal veicolo che precede è troppo piccola, forza un'accelerazione negativa molto forte per evitare collisioni
             if delta_x <= 0.1:
                 alpha = 50 
             else:
                 alpha = (self.s0 + max(0, self.T*self.v + delta_v*self.v/self.sqrt_ab)) / delta_x
                 
+        #  Aggiorna l'accelerazione del veicolo in base alla velocità attuale, alla velocità massima e al parametro alpha calcolato sopra
         self.a = self.a_max * (1-(self.v/self.v_max)**4 - alpha**2)
 
         if self.stopped: 
             self.a = -self.b_max*self.v/self.v_max
             
-        # Generazione Telemetria (Fase 2)
+            
+        # Aggiorna i dati simulati dell'OBU (On-Board Unit) se la funzione update_telemetry è stata definita 
         if hasattr(self, 'update_telemetry'):
             self.update_telemetry()
 
+    # Funzione per aggiornare i dati simulati dell'OBU (On-Board Unit) del veicolo, come giri del motore e emissioni di CO2, basandosi sulla fisica attuale del veicolo
     def update_telemetry(self):
         """Calcola e aggiorna i valori simulati dell'OBU basandosi sulla fisica attuale"""
         speed_factor = max(0, min(1, self.v / self.v_max)) # 0.0 -> 1.0

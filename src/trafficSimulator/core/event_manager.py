@@ -1,8 +1,8 @@
 from collections import deque
 from .vehicle import Vehicle
 
-class EventManager:
-    def __init__(self, simulation):
+class EventManager: # Gestisce eventi temporanei nella simulazione, come ostacoli o animali sulla strada, attivandoli e rimuovendoli in base al tempo.
+    def __init__(self, simulation): #legge la sezione "events" della configurazione nel json
         # Riferimento alla simulazione per leggere tempo, segmenti e veicoli.
         self.simulation = simulation
         # Lista degli eventi caricati dalla configurazione.
@@ -13,7 +13,7 @@ class EventManager:
         self.triggered_events = set()
 
     def update(self):
-        """Controlla se qualche evento deve essere attivato o rimosso."""
+        """Controlla a ogni intervallo temporale se qualche evento deve essere attivato o rimosso."""
         t = self.simulation.t
 
         # Scorre tutti gli eventi configurati e valuta se devono partire.
@@ -45,7 +45,7 @@ class EventManager:
                 self.active_obstacles.remove(obs_data)
 
     def trigger_event(self, event):
-        """Crea e inserisce nella simulazione un ostacolo/evento temporaneo."""
+        """Crea e inserisce nella simulazione un ostacolo/evento temporaneo per simulare l'evento."""
         event_type = event.get("type", "obstacle")
         segment_idx = event.get("segment", 0)
         pos_x = event.get("position", 50)
